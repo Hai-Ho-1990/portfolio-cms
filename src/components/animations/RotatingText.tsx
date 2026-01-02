@@ -16,11 +16,16 @@ export default function RotatingText({
 
     useEffect(() => {
         if (words.length === 0) return;
+        if (interval <= 500) {
+            console.warn(
+                'RotatingText: interval should be greater than 500ms to avoid animation overlap'
+            );
+        }
 
         setCurrentIndex(0);
         setIsAnimating(false);
 
-        let timeoutId: NodeJS.Timeout | null = null;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
         const timer = setInterval(() => {
             setIsAnimating(true);
             timeoutId = setTimeout(() => {

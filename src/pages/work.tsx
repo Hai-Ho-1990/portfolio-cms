@@ -49,7 +49,7 @@ const HorizontalWorkSection = () => {
             // Visa/göm WorksHeader
             if (headerRef.current) {
                 headerRef.current.style.display =
-                    progress >= 1.02 ? 'none' : 'block';
+                    progress >= 0.98 ? 'none' : 'block';
             }
 
             // Visa Return Home-knappen när vi når slutet
@@ -82,6 +82,7 @@ const HorizontalWorkSection = () => {
             {showReturnButton && (
                 <button
                     onClick={() => navigate('/')} // Gatsby navigate
+                    aria-label="Return to home page"
                     className="fixed bottom-10 right-10 font-semibold text-[#c4b8a5] rounded-xl shadow-lg flex items-center gap-2 text-md uppercase"
                 >
                     Return Home

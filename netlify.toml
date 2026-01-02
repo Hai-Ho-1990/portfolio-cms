@@ -1,0 +1,3 @@
+[[edge_functions]]
+  path = "/api/keep-alive"
+  function = "keep-alive"

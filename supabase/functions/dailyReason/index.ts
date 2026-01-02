@@ -203,7 +203,7 @@ async function upsertContentfulEntry(reason: string) {
       )
       console.log('[LOG] Contentful entry updated:', entry.sys?.id)
     } else {
-      // Skapa ny entry (med retries)
+      // Create new Contentful entry (with retries)
       console.log('[LOG] Creating new Contentful entry')
       entry = await fetchJsonWithRetries(
         `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT}/entries`,
@@ -219,18 +219,20 @@ async function upsertContentfulEntry(reason: string) {
         3,
         800
       )
+      const entryId = entry?.sys?.id;
+      if (!entryId) {
+        console.error('[ERROR] No entryId returned from Contentful entry creation:', entry);
+        throw new Error('No entryId returned from Contentful entry creation');
+      }
       const { error: upsertErr } = await supabase
         .from('daily_reason_entry')
-        .upsert({ key: 'daily_reason', contentful_id: entryId }, { onConflict: 'key' })
+        .upsert({ key: 'daily_reason', contentful_id: entryId }, { onConflict: 'key' });
       if (upsertErr) {
-        console.error('[ERROR] Supabase upsert error:', upsertErr)
-        throw new Error(`Failed to persist Contentful entry ID: ${upsertErr.message}`)
+        console.error('[ERROR] Supabase upsert error:', upsertErr);
+        throw new Error(`Failed to persist Contentful entry ID: ${upsertErr.message || upsertErr}`);
       }
-      console.log('[LOG] Supabase upserted entryId:', entryId)
-        .from('daily_reason_entry')
-        .upsert({ key: 'daily_reason', contentful_id: entryId }, { onConflict: 'key' })
-      if (upsertErr) console.error('[ERROR] Supabase upsert error:', upsertErr)
-      else console.log('[LOG] Supabase upserted entryId:', entryId)
+      console.log('[LOG] Supabase upserted entryId:', entryId);
+    }
     }
 
     // Publicera entry (med retries)

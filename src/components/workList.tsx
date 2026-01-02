@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { graphql, useStaticQuery, navigate } from 'gatsby';
+import { graphql, useStaticQuery, navigate, Link } from 'gatsby';
 import BounceCards from './animations/BounceCards';
 
 /* ---------------- TYPES ---------------- */
@@ -97,12 +97,12 @@ export default function WorkList() {
                         className="w-screen h-screen shrink-0 flex flex-col lg:flex-row items-center justify-around bg-black text-[#c4b8a5] px-10 pt-20"
                     >
                         <div className="flex flex-col items-center justify-center">
-                            <h2
+                            <Link
+                                to={`/work/${work.slug}`}
                                 className="text-4xl lg:text-6xl font-bold mb-6 cursor-pointer"
-                                onClick={() => navigate(`/work/${work.slug}`)}
                             >
-                                {work.title}
-                            </h2>
+                                <h2>{work.title}</h2>
+                            </Link>
                             <p className="text-center max-w-2xl opacity-70 text-sm lg:text-lg w-[70%] md:w-[80%] md:mt-10">
                                 {description}
                             </p>

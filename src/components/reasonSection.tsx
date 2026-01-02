@@ -47,15 +47,6 @@ export default function ReasonSection() {
                     textAlign="center"
                 />
             </div>
-            {/* <div className="relative w-full lg:w-[35vw] h-[35vh] lg:hidden overflow-hidden mt-10">
-                {thumbnail?.url && (
-                    <img
-                        src={thumbnail.url}
-                        alt="painting"
-                        className="absolute inset-0 w-full h-full object-cover z-0 brightness-110"
-                    />
-                )}
-            </div> */}
 
             <p className="text-xs text-gray-500 w-[80%] mt-10 text-center">
                 {obs}

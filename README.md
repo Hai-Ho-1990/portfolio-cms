@@ -33,13 +33,12 @@
 
     Edit `src/pages/index.tsx` to see your site update in real-time!
 
-
 ## 4dd Environment Variables for Contentful
 
 This project requires the following environment variables for Contentful integration:
 
-- `CONTENTFUL_ACCESS_TOKEN`: Your Contentful API access token
-- `CONTENTFUL_SPACE_ID`: Your Contentful space ID
+-   `CONTENTFUL_ACCESS_TOKEN`: Your Contentful API access token
+-   `CONTENTFUL_SPACE_ID`: Your Contentful space ID
 
 Create a `.env` file in the project root (see `.env.example` for format):
 
@@ -48,10 +47,7 @@ CONTENTFUL_ACCESS_TOKEN=your_contentful_access_token_here
 CONTENTFUL_SPACE_ID=your_contentful_space_id_here
 ```
 
-Make sure these variables are set in your CI/CD environment as well.
-    - [API Reference](https://www.gatsbyjs.com/docs/api-reference/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
-    - [Plugin Library](https://www.gatsbyjs.com/plugins?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
-    - [Cheat Sheet](https://www.gatsbyjs.com/docs/cheat-sheet/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
+Make sure these variables are set in your CI/CD environment as well. - [API Reference](https://www.gatsbyjs.com/docs/api-reference/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts) - [Plugin Library](https://www.gatsbyjs.com/plugins?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts) - [Cheat Sheet](https://www.gatsbyjs.com/docs/cheat-sheet/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter-ts)
 
 ## 🚀 Quick start (Netlify)
 

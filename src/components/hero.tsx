@@ -53,16 +53,30 @@ export default function Hero() {
 
     return (
         <section className="hero-component flex flex-col justify-center items-center pb-4">
-            <img
-                src={profileImage?.url}
-                alt="Profile"
-                className="w-24 h-24 align-middle rounded-full border-4 border-white"
-            />
+            {profileImage?.url && (
+                <img
+                    src={profileImage.url}
+                    alt="Profile picture"
+                    className="w-24 h-24 align-middle rounded-full border-4 border-white"
+                />
+            )}
             <div className="hero-text  flex flex-col justify-center items-center text-center ">
                 {/* Så här renderar man rich text i contentful */}
                 {welcomeText?.raw && (
                     <div className="welcome-text text-[3rem] lg:text-[4.5rem] tracking-tighter  text-[#312B22] mt-6 lowercase leading-[1.1] w-[60%]">
-                        {documentToReactComponents(JSON.parse(welcomeText.raw))}
+                        {(() => {
+                            try {
+                                return documentToReactComponents(
+                                    JSON.parse(welcomeText.raw)
+                                );
+                            } catch (error) {
+                                console.error(
+                                    'Failed to parse welcome text:',
+                                    error
+                                );
+                                return null;
+                            }
+                        })()}
                     </div>
                 )}
 

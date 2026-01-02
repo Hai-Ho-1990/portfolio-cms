@@ -33,15 +33,24 @@ export default function WorkIntro() {
 
     return (
         <section className="w-screen h-screen shrink-0 flex flex-col items-center justify-center text-[#c4b8a5] bg-black">
-            <h1 className="text-3xl">{title}</h1>
-            <p className="text-2xl mt-2">{subTitle}</p>
+            {title && <h1 className="text-3xl">{title}</h1>}
+            {subTitle && <p className="text-2xl mt-2">{subTitle}</p>}
             {content && (
                 <div className="mt-10 text-2xl text-center max-w-3xl self-center lg:text-[3rem] leading-[1.1]">
-                    {documentToReactComponents(JSON.parse(content.raw))}
+                    {(() => {
+                        try {
+                            return documentToReactComponents(
+                                JSON.parse(content.raw)
+                            );
+                        } catch (error) {
+                            console.error('Failed to parse content:', error);
+                            return null;
+                        }
+                    })()}
                 </div>
             )}
             <div className=" px-5 py-2 flex items-center gap-2 mt-10">
-                <h4 className="text-xl">{helpText}</h4>
+                {helpText && <h4 className="text-xl">{helpText}</h4>}
                 {helpIcon?.file?.url && (
                     <img
                         src={helpIcon.file.url}

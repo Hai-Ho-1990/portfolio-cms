@@ -26,7 +26,7 @@ export default function AboutSection() {
         }
     `);
 
-    const aboutSectionData = data.allContentfulAboutSection.nodes[0];
+    const aboutSectionData = data.allContentfulAboutSection?.nodes?.[0];
 
     if (!aboutSectionData) {
         return null; // or render a fallback UI
@@ -35,7 +35,7 @@ export default function AboutSection() {
     const { title, thumbnail, description, ctaReference } = aboutSectionData;
 
     return (
-        <section className="about w-screen h-screen flex flex-col justify-center  bg-[#fafafa] text-[#312B22]">
+        <section className="about w-screen min-h-screen flex flex-col justify-center bg-[#fafafa] text-[#312B22]">
             {/* CTA LINKS (ARRAY) */}
             {ctaReference?.length > 0 &&
                 ctaReference
