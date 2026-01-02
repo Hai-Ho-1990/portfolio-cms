@@ -1,0 +1,4 @@
+# Disable JWT verification so scheduled jobs (which call the function without an
+# Authorization header) can invoke this function. This file is used by the
+# Supabase CLI when deploying edge functions.
+verify_jwt = false
