@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ReactLenis } from 'lenis/dist/lenis-react';
 import Hero from './hero';
 import TechStackScroller from './techStackScroller';
 import FooterComponent from './footerComponent';
@@ -6,14 +7,14 @@ import NavBar from './navbar';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
-        <>
+        <ReactLenis root>
             <header className="relative h-screen flex flex-col justify-between overflow-hidden bg-[#efefef]">
                 <NavBar />
                 <Hero />
                 <TechStackScroller />
             </header>
 
-            <main className="container">{children}</main>
+            <main className="container min-h-screen">{children}</main>
 
             <footer
                 id="footer"
@@ -21,7 +22,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             >
                 <FooterComponent />
             </footer>
-        </>
+        </ReactLenis>
     );
 };
 

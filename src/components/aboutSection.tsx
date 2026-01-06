@@ -85,12 +85,12 @@ export default function AboutSection() {
                         );
                     })}
 
-            <h1 className=" tracking-tighter text-center items-center lg:text-3xl">
+            <h1 className="tracking-tighter text-center items-center lg:text-2xl">
                 {title}
             </h1>
 
             {description && (
-                <div className="mt-6 text-2xl text-center max-w-2xl w-[70%] self-center lg:text-[3rem] leading-[1.1]">
+                <div className="mt-8 text-2xl text-center max-w-2xl w-[70%] self-center lg:text-[3rem] leading-[1.1]">
                     {(() => {
                         try {
                             return documentToReactComponents(

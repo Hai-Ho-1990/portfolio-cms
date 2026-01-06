@@ -233,7 +233,6 @@ async function upsertContentfulEntry(reason: string) {
       }
       console.log('[LOG] Supabase upserted entryId:', entryId);
     }
-    }
 
     // Publicera entry (med retries)
     await (async () => {
@@ -271,6 +270,7 @@ async function upsertContentfulEntry(reason: string) {
     return entry
   } catch (err) {
     console.error('[ERROR] upsertContentfulEntry failed:', err)
+
     throw err
   }
 }
@@ -345,19 +345,29 @@ Do NOT write an example — generate one new, original sentence each time the pr
 // =========================
 serve(async (req) => {
   try {
-
-
-    const isCron = req.headers.get('x-supabase-cron') === 'true'
-    const isManual = req.headers.get('x-invoke-secret') === CRON_INVOKE_SECRET
+    const isCron = req.headers.get('x-supabase-cron') === 'true';
+    const isManual = req.headers.get('x-invoke-secret') === CRON_INVOKE_SECRET;
 
     if (!isCron && !isManual) {
-      return new Response(JSON.stringify({ code: 401, message: 'Unauthorized' }), { status: 401 })
+      return new Response(JSON.stringify({ code: 401, message: 'Unauthorized' }), { status: 401 });
     }
 
-    const data = await generateDailyReason()
-    return new Response(JSON.stringify({ success: true, data }), { status: 200 })
+    // =========================
+    // Warm ping handling
+    // =========================
+    if (isCron) {
+        console.log('[LOG] Warm ping received from cron trigger, skipping generation.')
+      // Om det är warm-ping, kör inte hela generateDailyReason
+      return new Response(JSON.stringify({ success: true, message: 'warm ping' }), { status: 200 });
+    }
+
+    // =========================
+    // Kör din riktiga logik endast om det är manuell trigger
+    // =========================
+    const data = await generateDailyReason();
+    return new Response(JSON.stringify({ success: true, data }), { status: 200 });
   } catch (err: any) {
-    console.error('Function error', err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+    console.error('Function error', err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
-})
+});

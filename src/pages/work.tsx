@@ -49,7 +49,7 @@ const HorizontalWorkSection = () => {
             // Visa/göm WorksHeader
             if (headerRef.current) {
                 headerRef.current.style.display =
-                    progress >= 0.98 ? 'none' : 'block';
+                    progress >= 1.02 ? 'none' : 'block';
             }
 
             // Visa Return Home-knappen när vi når slutet

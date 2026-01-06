@@ -100,10 +100,8 @@ const IndexPage = () => {
     return (
         <Layout>
             <AboutSection />
-            <ReactLenis root>
-                <LenisScrollSection />
-                <ReasonSection />
-            </ReactLenis>
+            <LenisScrollSection />
+            <ReasonSection />
         </Layout>
     );
 };
