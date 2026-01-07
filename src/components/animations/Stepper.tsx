@@ -21,26 +21,23 @@ interface StepperProps extends HTMLAttributes<HTMLDivElement> {
    Stepper
 ======================= */
 
+type StepElement = React.ReactElement<{
+    title?: string;
+    children: ReactNode;
+}>;
+
 export default function Stepper({ children, ...rest }: StepperProps) {
-    const stepsArray = Children.toArray(children);
+    const stepsArray = Children.toArray(children) as StepElement[];
     const totalSteps = stepsArray.length;
 
-    const [currentStep, setCurrentStep] = useState(1);
-
-    const handleStepVisible = (step: number) => {
-        setCurrentStep(step);
-    };
+    const [currentStep, setCurrentStep] = useState(0);
 
     return (
         <div className="flex w-full" {...rest}>
-            {/* =======================
-                Step indicators (LEFT)
-            ======================= */}
+            {/* Indicators */}
             <div className="sticky top-0 h-screen flex flex-col items-center justify-center gap-4 px-6">
                 {stepsArray.map((_, index) => {
                     const stepNumber = index + 1;
-                    const isNotLast = index < totalSteps - 1;
-
                     return (
                         <div
                             key={stepNumber}
@@ -50,8 +47,7 @@ export default function Stepper({ children, ...rest }: StepperProps) {
                                 step={stepNumber}
                                 currentStep={currentStep}
                             />
-
-                            {isNotLast && (
+                            {index < totalSteps - 1 && (
                                 <StepConnectorVertical
                                     isComplete={currentStep > stepNumber}
                                 />
@@ -61,18 +57,16 @@ export default function Stepper({ children, ...rest }: StepperProps) {
                 })}
             </div>
 
-            {/* =======================
-                Scroll content (RIGHT)
-            ======================= */}
+            {/* Content */}
             <div className="flex flex-col flex-1">
                 {stepsArray.map((step, index) => (
                     <Step
                         key={index}
                         index={index}
-                        title={(step as any).props.title}
-                        onVisible={handleStepVisible}
+                        title={step.props.title}
+                        onVisible={setCurrentStep}
                     >
-                        {(step as any).props.children}
+                        {step.props.children}
                     </Step>
                 ))}
             </div>
@@ -167,7 +161,11 @@ function StepIndicator({
                 }
             }}
         >
-            {status === 'complete' ? '✓' : step}
+            <div
+                className={`h-3 w-3 rounded-full transition-colors duration-300 ${
+                    status === 'inactive' ? 'bg-[#c4b8a5]' : 'bg-white'
+                }`}
+            ></div>
         </motion.div>
     );
 }

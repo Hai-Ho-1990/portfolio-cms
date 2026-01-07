@@ -26,7 +26,7 @@ type Work = {
 export default function WorkList() {
     const data = useStaticQuery(graphql`
         query {
-            allContentfulWorks {
+            allContentfulWorks(sort: { fields: projectOrder, order: ASC }) {
                 nodes {
                     title
                     techStack {
@@ -54,6 +54,7 @@ export default function WorkList() {
                         }
                     }
                     slug
+                    projectOrder
                 }
             }
         }
