@@ -20,11 +20,13 @@ export default function NotFoundPage({}: PageProps) {
 
     return (
         <main className="w-screen h-screen flex flex-col justify-center items-center bg-[#fafafa] text-[#312B22]">
-            <h1 className="text-6xl lg:text-9xl font-bold mb-8">{title}</h1>
-            <p className="text-xl lg:text-2xl mb-8">{message}</p>
+            <h1 className="text-8xl lg:text-9xl font-bold mb-8">{title}</h1>
+            <p className="text-md lg:text-2xl mb-8">{message}</p>
             <Link
                 to="/"
-                className="px-6 py-3 bg-[#312B22] text-[#fafafa] rounded hover:bg-[#4a4237] transition"
+                className="px-8 py-4 bg-black text-white rounded-3xl
+    shadow-[0_12px_20px_-4px_rgba(0,0,0,0.86)]
+    cursor-pointer "
             >
                 {ctaText}
             </Link>

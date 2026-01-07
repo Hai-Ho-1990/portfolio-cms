@@ -9,6 +9,16 @@ import React, {
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 
+export function StepItem({
+    title,
+    children
+}: {
+    title?: string;
+    children: ReactNode;
+}) {
+    return <>{children}</>;
+}
+
 /* =======================
    Types
 ======================= */
@@ -27,7 +37,10 @@ type StepElement = React.ReactElement<{
 }>;
 
 export default function Stepper({ children, ...rest }: StepperProps) {
-    const stepsArray = Children.toArray(children) as StepElement[];
+    const stepsArray = Children.toArray(children).filter(
+        Boolean
+    ) as StepElement[];
+
     const totalSteps = stepsArray.length;
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -60,14 +73,14 @@ export default function Stepper({ children, ...rest }: StepperProps) {
             {/* Content */}
             <div className="flex flex-col flex-1">
                 {stepsArray.map((step, index) => (
-                    <Step
+                    <ScrollStep
                         key={index}
                         index={index}
                         title={step.props.title}
                         onVisible={setCurrentStep}
                     >
                         {step.props.children}
-                    </Step>
+                    </ScrollStep>
                 ))}
             </div>
         </div>
@@ -78,7 +91,7 @@ export default function Stepper({ children, ...rest }: StepperProps) {
    Step (scroll-based)
 ======================= */
 
-export function Step({
+export function ScrollStep({
     title,
     children,
     index,
@@ -101,6 +114,7 @@ export function Step({
             onVisible(index + 1);
         }
     }, [isInView, index, onVisible]);
+    if (!children) return null;
 
     return (
         <section

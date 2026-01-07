@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Stepper, { Step } from '../components/animations/Stepper';
+import Stepper, { StepItem } from '../components/animations/Stepper';
 
 import { graphql, useStaticQuery } from 'gatsby';
 
@@ -45,7 +45,7 @@ export default function Experiences() {
         <section className="w-screen flex items-center justify-start pl-20 pr-4 bg-[#fafafa]">
             <Stepper>
                 {experiencesData.map((experience: Experience) => (
-                    <Step
+                    <StepItem
                         key={`${experience.title}-${experience.startYear}`} // ✅ UNIK
                         title={experience.period}
                     >
@@ -68,7 +68,7 @@ export default function Experiences() {
                                     ) : null
                             )}
                         </div>
-                    </Step>
+                    </StepItem>
                 ))}
             </Stepper>
         </section>

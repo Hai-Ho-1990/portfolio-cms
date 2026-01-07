@@ -32,11 +32,11 @@ export default function WorkIntro() {
     const { content, helpIcon, subTitle, title, helpText } = workIntroData;
 
     return (
-        <section className="w-screen h-screen shrink-0 flex flex-col items-center justify-center text-[#c4b8a5] bg-black">
-            {title && <h1 className="text-3xl">{title}</h1>}
-            {subTitle && <p className="text-2xl mt-2">{subTitle}</p>}
+        <section className="w-screen h-screen flex flex-col items-center justify-center text-black bg-[#efefef]">
+            {title && <h1 className="text-2xl lg:text-3xl">{title}</h1>}
+            {subTitle && <p className="text-xl lg:text-2xl mt-2">{subTitle}</p>}
             {content && (
-                <div className="mt-10 text-2xl text-center max-w-3xl self-center lg:text-[3rem] leading-[1.1]">
+                <div className="w-[80%] lg:w-screen mt-10 text-xl  text-center max-w-3xl self-center lg:text-[3rem] leading-[1.1]">
                     {(() => {
                         try {
                             return documentToReactComponents(
@@ -49,16 +49,6 @@ export default function WorkIntro() {
                     })()}
                 </div>
             )}
-            <div className=" px-5 py-2 flex items-center gap-2 mt-10">
-                {helpText && <h4 className="text-xl">{helpText}</h4>}
-                {helpIcon?.file?.url && (
-                    <img
-                        src={helpIcon.file.url}
-                        alt="Help icon"
-                        className="w-4"
-                    />
-                )}
-            </div>
         </section>
     );
 }

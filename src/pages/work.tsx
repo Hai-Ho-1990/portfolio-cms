@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { navigate } from 'gatsby';
+import NavBar from '../components/navbar';
+import WorkIntro from '../components/workIntro';
 import WorkList from '../components/workList';
 import WorksHeader from '../components/workHeader';
 import { ReactLenis, useLenis } from 'lenis/dist/lenis-react';
@@ -131,6 +133,12 @@ const HorizontalWorkSection = () => {
 export default function WorkPage() {
     return (
         <ReactLenis root>
+            <header className="absolute top-0 w-full z-50">
+                <NavBar />
+            </header>
+
+            <WorkIntro />
+
             <HorizontalWorkSection />
         </ReactLenis>
     );

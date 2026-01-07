@@ -2,6 +2,7 @@ import { graphql, useStaticQuery } from 'gatsby';
 import * as React from 'react';
 
 interface Recommendation {
+    reference?: string;
     avatar?: { url: string };
     name: string;
     position: string;
@@ -21,6 +22,7 @@ export default function Recommendations() {
                     recommendation {
                         recommendation
                     }
+                    reference
                 }
             }
         }
@@ -38,11 +40,31 @@ export default function Recommendations() {
                         <div className="mb-8 max-w-4xl mx-auto px-4 w-[80%] lg:w-screen">
                             <div className="flex items-center gap-4 ">
                                 {recommendation.avatar?.url && (
-                                    <img
-                                        src={recommendation.avatar.url}
-                                        alt={recommendation.name}
-                                        className="w-12 h-12 rounded-full object-cover"
-                                    />
+                                    <>
+                                        {recommendation.reference ? (
+                                            <a
+                                                href={recommendation.reference}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label={`View ${recommendation.name}'s profile`}
+                                            >
+                                                <img
+                                                    src={
+                                                        recommendation.avatar
+                                                            .url
+                                                    }
+                                                    alt={recommendation.name}
+                                                    className="w-12 h-12 rounded-full object-cover"
+                                                />
+                                            </a>
+                                        ) : (
+                                            <img
+                                                src={recommendation.avatar.url}
+                                                alt={recommendation.name}
+                                                className="w-12 h-12 rounded-full object-cover"
+                                            />
+                                        )}
+                                    </>
                                 )}
                                 <div>
                                     <h3 className="font-bold">
@@ -53,7 +75,7 @@ export default function Recommendations() {
                                     </p>
                                 </div>
                             </div>
-                            <p className="mb-4 italic mt-6 text-xs lg:text-base">
+                            <p className="mb-4 italic mt-6 text-xs lg:text-base tracking-wider">
                                 "
                                 {recommendation.recommendation
                                     ?.recommendation || ''}

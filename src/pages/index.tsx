@@ -5,7 +5,7 @@ import WorkList from '../components/workList';
 import WorksHeader from '../components/workHeader';
 import ReasonSection from '../components/reasonSection';
 import { useEffect, useRef } from 'react';
-import { ReactLenis, useLenis } from 'lenis/dist/lenis-react';
+import { useLenis } from 'lenis/dist/lenis-react';
 
 const LenisScrollSection: React.FC = () => {
     const ulRef = useRef<HTMLUListElement>(null);

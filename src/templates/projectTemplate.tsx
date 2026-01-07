@@ -15,7 +15,7 @@ import { graphql, PageProps } from 'gatsby';
 type TechStackItem = {
     title?: string;
     url?: string;
-    icon?: { file?: { url?: string } };
+    icon?: { file?: { url?: string }; url?: string }; // ExternalLink or VariantMedia
     svg?: { url?: string };
 };
 
@@ -144,7 +144,10 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                 {/* // Tech stack för hela projektet */}
                 <div className="tech-stack flex gap-4 mt-5 items-center justify-center">
                     {work.techStack.map((tech, i) => {
-                        const iconUrl = tech?.icon?.file?.url || tech?.svg?.url;
+                        const iconUrl =
+                            tech?.icon?.file?.url ||
+                            tech?.icon?.url ||
+                            tech?.svg?.url;
 
                         if (tech.url) {
                             return (
@@ -182,7 +185,7 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                     <div className="flex flex-col lg:flex-row justify-center items-start">
                         {/* MENYKNAPPAR */}
                         {/* Projekttitel */}
-                        <div className="lg:w-[42vw] flex flex-row justify-center lg:flex-col gap-6">
+                        <div className="lg:w-[42vw] flex flex-row justify-center self-center lg:flex-col gap-6">
                             {group.map((item) => {
                                 const isActive = item.key === activeMenu;
 
@@ -309,7 +312,13 @@ export const query = graphql`
                             url
                         }
                     }
+
                     url
+                }
+                ... on ContentfulVariantMedia {
+                    icon {
+                        url
+                    }
                 }
             }
         }

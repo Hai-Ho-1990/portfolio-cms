@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link, graphql, useStaticQuery } from 'gatsby';
 
 type NavItem = {
+    itemOrder: number;
     label: string;
     newTab: boolean;
     page?: {
@@ -20,6 +21,7 @@ export default function NavBar() {
                         page {
                             slug
                         }
+                        itemOrder
                     }
                 }
             }
@@ -28,20 +30,23 @@ export default function NavBar() {
 
     const items: NavItem[] =
         data?.allContentfulNavigation?.nodes?.[0]?.items ?? [];
+    const sortedItems = items
+        .slice()
+        .sort((a, b) => (a.itemOrder ?? 0) - (b.itemOrder ?? 0));
 
     if (!items.length) return null;
 
     return (
         <nav className=" w-screen border-b border-gray-200 pb-4">
             <ul className="flex gap-8 justify-center pt-4 uppercase text-sm">
-                {items.map((item: NavItem, index: number) => {
+                {sortedItems.map((item: NavItem, index: number) => {
                     const slug = item.page?.slug;
-                    if (!slug) return null;
+                    const href = slug ? `/${slug}` : `/`;
 
                     return (
                         <li key={index}>
                             <Link
-                                to={`/${slug}`}
+                                to={href}
                                 target={item.newTab ? '_blank' : undefined}
                                 rel={
                                     item.newTab

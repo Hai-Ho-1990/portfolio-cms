@@ -7,8 +7,8 @@ import BounceCards from './animations/BounceCards';
 type TechStackItem = {
     title?: string;
     url?: string;
-    icon?: { file?: { url?: string } };
-    svg?: { url?: string };
+    icon?: { file?: { url?: string }; url?: string }; // ExternalLink or VariantMedia
+    svg?: { url?: string }; // TechStack
 };
 
 type WorkImage = { file?: { url?: string } };
@@ -41,6 +41,11 @@ export default function WorkList() {
                         }
                         ... on ContentfulTechStack {
                             svg {
+                                url
+                            }
+                        }
+                        ... on ContentfulVariantMedia {
+                            icon {
                                 url
                             }
                         }
@@ -111,7 +116,9 @@ export default function WorkList() {
                             <div className="flex gap-4 mt-10">
                                 {work.techStack.map((tech, i) => {
                                     const iconUrl =
-                                        tech?.icon?.file?.url || tech?.svg?.url;
+                                        tech?.icon?.file?.url ||
+                                        tech?.icon?.url ||
+                                        tech?.svg?.url;
 
                                     if (tech.url) {
                                         return (
