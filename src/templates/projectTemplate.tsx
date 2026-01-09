@@ -1,6 +1,6 @@
 // Importerar React och useState-hooken för att hantera state
 import React, { useState } from 'react';
-
+import { GatsbyImage, getImage, IGatsbyImageData } from 'gatsby-plugin-image';
 import { navigate } from 'gatsby';
 import AnimatedContent from '../components/animations/AnimatedContent';
 
@@ -28,7 +28,7 @@ type ProjectSection = {
     title: string; // rubrik som visas i menyn
     content: { content: string }; // innehållet från Contentful
     techStack?: TechStackItem[]; // valfri tech stack för sektionen
-    thumbnail?: { url?: string }; // valfri thumbnail-bild för sektionen
+    thumbnail?: { gatsbyImageData: IGatsbyImageData }; // valfri thumbnail-bild för sektionen
 };
 
 /**
@@ -92,7 +92,7 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                 <button
                     onClick={() => navigate('/work')} // Gatsby navigate
                     aria-label="Return to work page"
-                    className="fixed left-5 top-5  md:left-10 font-semibold text-[#c4b8a5] rounded-xl shadow-lg flex items-center gap-2 text-xs md:text-sm uppercase"
+                    className="fixed left-5 top-5  md:left-10 font-semibold text-[#c4b8a5] rounded-xl shadow-lg flex items-center gap-2 text-[0.7rem] md:text-sm uppercase"
                 >
                     <p>Return</p>
                     <svg
@@ -136,7 +136,7 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                 <h1 className="text-center font-bold text-2xl pt-5">
                     {work.title}
                 </h1>
-                <h1 className="text-center text-sm lg:text-md pt-5">
+                <h1 className="text-center text-xs lg:text-base pt-5">
                     {' '}
                     The tech stack used in this project includes:
                 </h1>
@@ -181,11 +181,11 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                     })}
                 </div>
                 {/* Projektdetaljer */}
-                <div className="project-template  pt-16 ">
-                    <div className="flex flex-col lg:flex-row justify-center items-start">
+                <div className="project-template  pt-16 flex flex-col items-center ">
+                    <div className="flex flex-col lg:flex-row gap-14 items-center lg:items-start">
                         {/* MENYKNAPPAR */}
                         {/* Projekttitel */}
-                        <div className="lg:w-[42vw] flex flex-row justify-center self-center lg:flex-col gap-6">
+                        <div className="lg:w-[42vw] flex flex-row lg:flex-col gap-6">
                             {group.map((item) => {
                                 const isActive = item.key === activeMenu;
 
@@ -207,7 +207,7 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                                 : 'hover:text-black hover:bg-[#c4b8a5]')
                                         }
                                     >
-                                        <h4 className="uppercase font-bold text-xs lg:text-lg">
+                                        <h4 className="uppercase font-bold text-[0.7rem] lg:text-lg">
                                             {item.title}
                                         </h4>
                                         <p className=" text-sm leading-6 mt-2 lg:block hidden">
@@ -223,7 +223,7 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                 item.key === visibleKey && (
                                     <AnimatedContent
                                         key={item.key}
-                                        className="lg:w-[35vw]"
+                                        className="lg:w-[35vw] w-[80vw] flex flex-col justify-center items-center"
                                         distance={20}
                                         direction="vertical"
                                         reverse={false}
@@ -238,35 +238,41 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                             <p className="text-xs lg:text-sm leading-6 mt-10 block lg:hidden text-center w-[80%] items-center mx-auto">
                                                 {item.content.content}
                                             </p>
-                                            {item.thumbnail?.url ? (
+                                            {/* THUMBNAIL IMAGE */}
+                                            <div className="flex justify-center">
+                                                {item.thumbnail
+                                                    ?.gatsbyImageData ? (
+                                                    <GatsbyImage
+                                                        image={
+                                                            item.thumbnail
+                                                                .gatsbyImageData
+                                                        }
+                                                        alt={item.title}
+                                                        className=" lg:w-[100%] object-cover rounded-xl mb-4 mt-10 lg:mt-0 mx-auto "
+                                                    />
+                                                ) : (
+                                                    <p className="uppercase text-2xl lg:text-3xl text-[#c4b8a5] font-bold opacity-90 text-center mt-10">
+                                                        No image available
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* {item.thumbnail?.url ? (
                                                 <img
                                                     src={item.thumbnail.url}
                                                     alt={`${item.title} thumbnail`}
                                                     className="w-[50%] lg:w-[85%]  object-cover rounded-xl mb-4  mt-10 lg:mt-0 mx-auto"
                                                 />
                                             ) : (
-                                                <p className="uppercase text-2xl lg:text-3xl text-[#c4b8a5] font-bold opacity-90 text-center ">
+                                                <p className="uppercase text-2xl lg:text-3xl text-[#c4b8a5] font-bold opacity-90 text-center mt-10">
                                                     No image available
                                                 </p>
-                                            )}
+                                            )} */}
                                         </section>
                                     </AnimatedContent>
                                 )
                         )}
                     </div>
-
-                    {/* INNEHÅLL SOM VISAS BASERAT PÅ AKTIV MENY */}
-                    {/* <div className="block lg:hidden">
-                        {group.map(
-                            (item) =>
-                                item.key === activeMenu && (
-                                    <section key={item.key}>
-                                        <h2>{item.title}</h2>
-                                        <p>{item.content.content}</p>
-                                    </section>
-                                )
-                        )}
-                    </div> */}
                 </div>
             </section>
         </>
@@ -295,7 +301,10 @@ export const query = graphql`
                     }
                     title
                     thumbnail {
-                        url
+                        gatsbyImageData(
+                            placeholder: BLURRED
+                            layout: CONSTRAINED
+                        )
                     }
                 }
             }

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { graphql, useStaticQuery } from 'gatsby';
 import RotatingText from './animations/RotatingText';
 import { documentToReactComponents } from '@contentful/rich-text-react-renderer';
+import { GatsbyImage, getImage } from 'gatsby-plugin-image';
 
 export default function Hero() {
     const data = useStaticQuery(graphql`
@@ -18,7 +19,11 @@ export default function Hero() {
                     }
                     ctaText
                     profileImage {
-                        url
+                        gatsbyImageData(
+                            placeholder: BLURRED
+                            formats: AUTO
+                            layout: CONSTRAINED
+                        )
                     }
                     properties {
                         name
@@ -37,6 +42,8 @@ export default function Hero() {
 
     const heroNode = data?.allContentfulHero?.nodes?.[0];
 
+    const profileAvatar = getImage(heroNode?.profileImage);
+
     if (!heroNode) {
         // Rendera inget, eller en placeholder
         return null;
@@ -46,16 +53,16 @@ export default function Hero() {
         welcomeText,
 
         ctaText,
-        profileImage,
+
         properties,
         ctaHover
     } = heroNode;
 
     return (
         <section className="hero-component flex flex-col justify-center items-center pb-4">
-            {profileImage?.url && (
-                <img
-                    src={profileImage.url}
+            {profileAvatar && (
+                <GatsbyImage
+                    image={profileAvatar}
                     alt="Profile picture"
                     className="w-24 h-24 align-middle rounded-full border-4 border-white"
                 />
@@ -114,7 +121,7 @@ export default function Hero() {
                     >
                         {ctaHover?.file?.url && (
                             <img
-                                src={ctaHover.file.url}
+                                src={`https:${ctaHover.file.url}`}
                                 alt="CTA hover"
                                 width={20}
                                 height={20}

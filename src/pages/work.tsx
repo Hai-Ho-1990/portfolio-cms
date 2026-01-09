@@ -1,10 +1,17 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { navigate } from 'gatsby';
+import * as React from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { graphql, navigate } from 'gatsby';
+import { ReactLenis, useLenis } from 'lenis/dist/lenis-react';
+import { PageProps } from 'gatsby';
 import NavBar from '../components/navbar';
 import WorkIntro from '../components/workIntro';
 import WorkList from '../components/workList';
 import WorksHeader from '../components/workHeader';
-import { ReactLenis, useLenis } from 'lenis/dist/lenis-react';
+import { SEOHead } from '../components/SEO';
+
+/* =======================
+   HORIZONTAL WORK SECTION
+======================= */
 
 const HorizontalWorkSection = () => {
     const ulRef = useRef<HTMLUListElement>(null);
@@ -26,16 +33,11 @@ const HorizontalWorkSection = () => {
         section.style.height = `${slideCount * 100 + 100}vh`;
 
         const update = ({ scroll }: { scroll: number }) => {
-            const section = sectionRef.current;
-            const ul = ulRef.current;
-            if (!section || !ul) return;
+            if (!sectionRef.current || !ulRef.current) return;
 
-            const slides = ul.querySelectorAll('li');
-            const slideCount = slides.length;
-
-            const sectionRect = section.getBoundingClientRect();
+            const sectionRect = sectionRef.current.getBoundingClientRect();
             const sectionTop = sectionRect.top + scroll;
-            const sectionHeight = section.offsetHeight;
+            const sectionHeight = sectionRef.current.offsetHeight;
             const viewportHeight = window.innerHeight;
 
             const start = sectionTop;
@@ -44,17 +46,15 @@ const HorizontalWorkSection = () => {
             const progress = (scroll - start) / (end - start);
             const clampedProgress = Math.min(Math.max(progress, 0), 1);
 
-            // Horisontell scroll
-            const translateX = -clampedProgress * (slideCount - 1) * 100;
-            ul.style.transform = `translateX(${translateX}vw)`;
+            ulRef.current.style.transform = `translateX(${
+                -clampedProgress * (slideCount - 1) * 100
+            }vw)`;
 
-            // Visa/göm WorksHeader
             if (headerRef.current) {
                 headerRef.current.style.display =
                     progress >= 1.02 ? 'none' : 'block';
             }
 
-            // Visa Return Home-knappen när vi når slutet
             setShowReturnButton(progress >= 1);
         };
 
@@ -64,7 +64,6 @@ const HorizontalWorkSection = () => {
 
     return (
         <section ref={sectionRef} className="relative min-h-screen">
-            {/* Sticky WorksHeader */}
             <div
                 ref={headerRef}
                 className="sticky top-0 z-50 backdrop-blur-sm w-full"
@@ -72,7 +71,6 @@ const HorizontalWorkSection = () => {
                 <WorksHeader />
             </div>
 
-            {/* Horisontell scroll */}
             <ul
                 ref={ulRef}
                 className="flex sticky top-0 left-0 h-screen will-change-transform"
@@ -80,57 +78,24 @@ const HorizontalWorkSection = () => {
                 <WorkList />
             </ul>
 
-            {/* Return Home-knapp */}
             {showReturnButton && (
                 <button
-                    onClick={() => navigate('/')} // Gatsby navigate
+                    onClick={() => navigate('/')}
                     aria-label="Return to home page"
                     className="fixed bottom-10 right-10 font-semibold text-[#c4b8a5] rounded-xl shadow-lg flex items-center gap-2 text-md uppercase"
                 >
                     Return Home
-                    <svg
-                        viewBox="0 0 512 512"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="#c4b8a5"
-                        width={30}
-                    >
-                        <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-                        <g
-                            id="SVGRepo_tracerCarrier"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        ></g>
-                        <g id="SVGRepo_iconCarrier">
-                            <title>ionicons-v5-c</title>
-                            <polyline
-                                points="112 352 48 288 112 224"
-                                style={{
-                                    fill: 'none',
-                                    stroke: '#c4b8a5',
-                                    strokeLinecap: 'round',
-                                    strokeLinejoin: 'round',
-                                    strokeWidth: '32px'
-                                }}
-                            ></polyline>
-                            <path
-                                d="M64,288H358c58.76,0,106-49.33,106-108V160"
-                                style={{
-                                    fill: 'none',
-                                    stroke: '#c4b8a5',
-                                    strokeLinecap: 'round',
-                                    strokeLinejoin: 'round',
-                                    strokeWidth: '32px'
-                                }}
-                            ></path>
-                        </g>
-                    </svg>
                 </button>
             )}
         </section>
     );
 };
 
-export default function WorkPage() {
+/* =======================
+   PAGE
+======================= */
+
+const WorkPage = () => {
     return (
         <ReactLenis root>
             <header className="absolute top-0 w-full z-50">
@@ -138,8 +103,71 @@ export default function WorkPage() {
             </header>
 
             <WorkIntro />
-
             <HorizontalWorkSection />
         </ReactLenis>
     );
-}
+};
+
+export default WorkPage;
+
+/* =======================
+   HEAD (SEO)
+======================= */
+type WorkSeo = {
+    seoTitle?: string;
+    seoDescription?: {
+        seoDescription?: string;
+    };
+    openGraphImage?: {
+        file?: {
+            url?: string;
+        };
+    };
+};
+
+type WorkPageData = {
+    allContentfulWorks: {
+        nodes: {
+            seo?: WorkSeo;
+        }[];
+    };
+};
+
+export const Head = ({ location, data }: PageProps<WorkPageData>) => {
+    const defaultSeo: WorkSeo = {
+        seoTitle: 'Work – Hai Ho',
+        seoDescription: {
+            seoDescription:
+                'Explore the work of Hai Ho, junior frontend developer.'
+        },
+        openGraphImage: undefined
+    };
+
+    const seo = data?.allContentfulWorks?.nodes?.[0]?.seo || defaultSeo;
+
+    return <SEOHead seo={seo} pathname={location.pathname} />;
+};
+
+/* =======================
+   PAGE QUERY
+======================= */
+
+export const query = graphql`
+    query WorkPageQuery {
+        allContentfulWorks {
+            nodes {
+                seo {
+                    seoTitle
+                    seoDescription {
+                        seoDescription
+                    }
+                    openGraphImage {
+                        file {
+                            url
+                        }
+                    }
+                }
+            }
+        }
+    }
+`;

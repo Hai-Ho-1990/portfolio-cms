@@ -6,6 +6,8 @@ import WorksHeader from '../components/workHeader';
 import ReasonSection from '../components/reasonSection';
 import { useEffect, useRef } from 'react';
 import { useLenis } from 'lenis/dist/lenis-react';
+import { SEOHead } from '../components/SEO';
+import { graphql } from 'gatsby';
 
 const LenisScrollSection: React.FC = () => {
     const ulRef = useRef<HTMLUListElement>(null);
@@ -96,7 +98,27 @@ const LenisScrollSection: React.FC = () => {
     );
 };
 
-const IndexPage = () => {
+type IndexPageProps = {
+    data: {
+        allContentfulHero: {
+            nodes: Array<{
+                seo: {
+                    seoTitle?: string;
+                    seoDescription?: {
+                        seoDescription?: string;
+                    };
+                    openGraphImage?: {
+                        file?: {
+                            url?: string;
+                        };
+                    };
+                };
+            }>;
+        };
+    };
+};
+
+const IndexPage = ({ data }: IndexPageProps) => {
     return (
         <Layout>
             <AboutSection />
@@ -106,5 +128,30 @@ const IndexPage = () => {
     );
 };
 
-export const Head = () => <title>Home Page</title>;
+export const Head = ({ location, data }: any) => {
+    const seo = data?.allContentfulHero?.nodes?.[0]?.seo;
+
+    return <SEOHead seo={seo} pathname={location.pathname} />;
+};
+
 export default IndexPage;
+
+export const query = graphql`
+    query IndexPageQuery {
+        allContentfulHero {
+            nodes {
+                seo {
+                    seoTitle
+                    seoDescription {
+                        seoDescription
+                    }
+                    openGraphImage {
+                        file {
+                            url
+                        }
+                    }
+                }
+            }
+        }
+    }
+`;

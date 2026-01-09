@@ -1,9 +1,14 @@
 import { graphql, useStaticQuery } from 'gatsby';
 import * as React from 'react';
+import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
+
+/* =======================
+   Recommendations Component
+======================= */
 
 interface Recommendation {
     reference?: string;
-    avatar?: { url: string };
+    avatar?: { gatsbyImageData: IGatsbyImageData };
     name: string;
     position: string;
     recommendation: { recommendation: string };
@@ -15,7 +20,10 @@ export default function Recommendations() {
             allContentfulRecommendations {
                 nodes {
                     avatar {
-                        url
+                        gatsbyImageData(
+                            placeholder: BLURRED
+                            layout: CONSTRAINED
+                        )
                     }
                     name
                     position
@@ -27,7 +35,9 @@ export default function Recommendations() {
             }
         }
     `);
-    const recommendationsData = data.allContentfulRecommendations?.nodes || [];
+    const recommendationsData: Recommendation[] =
+        data.allContentfulRecommendations?.nodes || [];
+    if (!recommendationsData.length) return null;
 
     return (
         <>
@@ -39,33 +49,17 @@ export default function Recommendations() {
                     >
                         <div className="mb-8 max-w-4xl mx-auto px-4 w-[80%] lg:w-screen">
                             <div className="flex items-center gap-4 ">
-                                {recommendation.avatar?.url && (
-                                    <>
-                                        {recommendation.reference ? (
-                                            <a
-                                                href={recommendation.reference}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                aria-label={`View ${recommendation.name}'s profile`}
-                                            >
-                                                <img
-                                                    src={
-                                                        recommendation.avatar
-                                                            .url
-                                                    }
-                                                    alt={recommendation.name}
-                                                    className="w-12 h-12 rounded-full object-cover"
-                                                />
-                                            </a>
-                                        ) : (
-                                            <img
-                                                src={recommendation.avatar.url}
-                                                alt={recommendation.name}
-                                                className="w-12 h-12 rounded-full object-cover"
-                                            />
-                                        )}
-                                    </>
+                                {recommendation.avatar?.gatsbyImageData && (
+                                    <GatsbyImage
+                                        image={
+                                            recommendation.avatar
+                                                .gatsbyImageData
+                                        }
+                                        alt={recommendation.name}
+                                        className="w-12 h-12 rounded-full object-cover"
+                                    />
                                 )}
+
                                 <div>
                                     <h3 className="font-bold">
                                         {recommendation.name}

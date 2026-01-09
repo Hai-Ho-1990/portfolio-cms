@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { navigate } from 'gatsby';
-import WorkList from './workList';
+
 import Recommendations from './recommendations';
 import RecommendationsHeader from './recommendationsHeader';
 import { ReactLenis, useLenis } from 'lenis/dist/lenis-react';

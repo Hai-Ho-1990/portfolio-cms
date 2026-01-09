@@ -2,32 +2,38 @@ import { graphql, useStaticQuery } from 'gatsby';
 import AnimatedContent from '../components/animations/AnimatedContent';
 import React from 'react';
 
+import { GatsbyImage, getImage } from 'gatsby-plugin-image';
+
 export default function Biography() {
     const data = useStaticQuery(graphql`
         query {
             allContentfulAboutMePage {
                 nodes {
                     avatar {
-                        file {
-                            url
-                        }
+                        gatsbyImageData(
+                            placeholder: BLURRED
+                            layout: CONSTRAINED
+                        )
                     }
                     biography {
                         biography
                     }
                     title
+                    name
+                    position
                 }
             }
         }
     `);
 
     const aboutData = data.allContentfulAboutMePage?.nodes?.[0];
+    const avatarImage = getImage(aboutData?.avatar);
 
     if (!aboutData) {
         return null; // or render a fallback UI
     }
 
-    const { avatar, biography, title } = aboutData;
+    const { name, position, biography, title } = aboutData;
 
     return (
         <div className="about-page w-screen flex flex-col items-center bg-[#fafafa] text-[#312B22] ">
@@ -38,20 +44,20 @@ export default function Biography() {
                 </h1>
                 <AnimatedContent>
                     <div className="flex  gap-4 mt-10">
-                        {avatar?.file?.url && (
-                            <img
-                                src={avatar.file.url}
-                                alt="Hai Ho's profile picture"
+                        {avatarImage && (
+                            <GatsbyImage
+                                image={avatarImage}
+                                alt={`${name}'s profile picture`}
                                 className="w-12 h-12 rounded-full object-cover"
                             />
                         )}
 
                         <div className="flex flex-col items-start">
                             <h2 className="text-sm tracking-tighter font-bold">
-                                Hai Ho
+                                {name}
                             </h2>
 
-                            <p className="text-sm">Junior Frontend Developer</p>
+                            <p className="text-sm">{position}</p>
                         </div>
                     </div>
 

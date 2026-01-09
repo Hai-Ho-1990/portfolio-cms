@@ -4,6 +4,7 @@ import Hero from './hero';
 import TechStackScroller from './techStackScroller';
 import FooterComponent from './footerComponent';
 import NavBar from './navbar';
+import { graphql, useStaticQuery } from 'gatsby';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     return (

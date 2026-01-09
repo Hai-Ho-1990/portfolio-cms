@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import React from 'react';
+import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
 
 interface BounceCardsProps {
     className?: string;
-    images?: string[];
+    images?: IGatsbyImageData[];
     containerWidth?: number;
     containerHeight?: number;
     animationDelay?: number;
@@ -143,7 +144,7 @@ export default function BounceCards({
                 height: containerHeight
             }}
         >
-            {images.map((src, idx) => (
+            {images.map((image, idx) => (
                 <div
                     key={idx}
                     className={`card card-${idx} absolute w-[30%] lg:w-[60%] h-[50%] lg:h-[100%] aspect-square rounded-[30px] overflow-hidden`}
@@ -154,10 +155,10 @@ export default function BounceCards({
                     onMouseEnter={() => pushSiblings(idx)}
                     onMouseLeave={resetSiblings}
                 >
-                    <img
+                    <GatsbyImage
+                        image={image}
+                        alt={`Bounce card ${idx + 1}`}
                         className="w-full h-full object-cover"
-                        src={src}
-                        alt={`card-${idx}`}
                     />
                 </div>
             ))}

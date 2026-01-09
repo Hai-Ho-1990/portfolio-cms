@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { graphql, useStaticQuery, navigate, Link } from 'gatsby';
+import { graphql, useStaticQuery, Link } from 'gatsby';
 import BounceCards from './animations/BounceCards';
+import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
 
 /* ---------------- TYPES ---------------- */
 
@@ -11,7 +12,9 @@ type TechStackItem = {
     svg?: { url?: string }; // TechStack
 };
 
-type WorkImage = { file?: { url?: string } };
+type WorkImage = {
+    gatsbyImageData: IGatsbyImageData;
+};
 
 type Work = {
     slug: string;
@@ -54,9 +57,10 @@ export default function WorkList() {
                         raw
                     }
                     workImage {
-                        file {
-                            url
-                        }
+                        gatsbyImageData(
+                            placeholder: BLURRED
+                            layout: CONSTRAINED
+                        )
                     }
                     slug
                     projectOrder
@@ -66,6 +70,8 @@ export default function WorkList() {
     `);
 
     const works: Work[] = data.allContentfulWorks.nodes;
+
+    if (!works.length) return null;
 
     const transformStyles = [
         'rotate(10deg) translate(-170px)',
@@ -77,7 +83,7 @@ export default function WorkList() {
 
     return (
         <>
-            {works.map((work, index) => {
+            {works.map((work) => {
                 let description = '';
                 try {
                     const richText = JSON.parse(work.description.raw);
@@ -90,16 +96,14 @@ export default function WorkList() {
                     );
                 }
 
-                const workImages: string[] =
-                    work.workImage
-                        ?.map((img) => img?.file?.url)
-                        .filter(
-                            (url): url is string => typeof url === 'string'
-                        ) ?? [];
+                // Platta ut bilder för BounceCards
+                const workImages = work.workImage.map(
+                    (img) => img.gatsbyImageData
+                );
 
                 return (
                     <li
-                        key={index}
+                        key={work.slug}
                         className="w-screen h-screen shrink-0 flex flex-col lg:flex-row items-center justify-around bg-black text-[#c4b8a5] px-10 pt-20"
                     >
                         <div className="flex flex-col items-center justify-center">
@@ -109,6 +113,7 @@ export default function WorkList() {
                             >
                                 <h2>{work.title}</h2>
                             </Link>
+
                             <p className="text-center max-w-2xl opacity-70 text-sm lg:text-lg w-[70%] md:w-[80%] md:mt-10">
                                 {description}
                             </p>
@@ -132,7 +137,7 @@ export default function WorkList() {
                                             >
                                                 {iconUrl && (
                                                     <img
-                                                        src={iconUrl}
+                                                        src={`https:${iconUrl}`}
                                                         alt={
                                                             tech.title ||
                                                             'External link'
@@ -156,6 +161,7 @@ export default function WorkList() {
                             </div>
                         </div>
 
+                        {/* BounceCards */}
                         {workImages.length > 0 && (
                             <BounceCards
                                 images={workImages}

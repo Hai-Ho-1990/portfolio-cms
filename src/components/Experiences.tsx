@@ -1,24 +1,18 @@
 import * as React from 'react';
 import Stepper, { StepItem } from '../components/animations/Stepper';
-
+import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
 import { graphql, useStaticQuery } from 'gatsby';
 
 /* =======================
    Experiences Component
 ======================= */
 
-interface ContentfulImage {
-    file: {
-        url: string;
-    };
-}
-
 interface Experience {
     title: string;
     period: string;
     experience: string;
     startYear: number;
-    thumbnail?: ContentfulImage[];
+    thumbnail?: { gatsbyImageData: IGatsbyImageData }[];
 }
 
 export default function Experiences() {
@@ -28,9 +22,10 @@ export default function Experiences() {
                 nodes {
                     experience
                     thumbnail {
-                        file {
-                            url
-                        }
+                        gatsbyImageData(
+                            placeholder: BLURRED
+                            layout: CONSTRAINED
+                        )
                     }
                     title
                     period
@@ -42,7 +37,7 @@ export default function Experiences() {
     const experiencesData = data.allContentfulExperiences?.nodes || [];
 
     return (
-        <section className="w-screen flex items-center justify-start pl-20 pr-4 bg-[#fafafa]">
+        <section className="w-screen flex items-center justify-start lg:pl-20 pr-4 bg-[#fafafa]">
             <Stepper>
                 {experiencesData.map((experience: Experience) => (
                     <StepItem
@@ -57,13 +52,18 @@ export default function Experiences() {
                         </p>
                         <div className="flex flex-row mt-4">
                             {experience.thumbnail?.map(
-                                (image: ContentfulImage) =>
-                                    image?.file?.url ? (
-                                        <img
-                                            key={image.file.url} // ✅ UNIK
-                                            src={`https:${image.file.url}`}
+                                (
+                                    image: {
+                                        gatsbyImageData: IGatsbyImageData;
+                                    },
+                                    index: number
+                                ) =>
+                                    image?.gatsbyImageData ? (
+                                        <GatsbyImage
+                                            key={`${experience.title}-${index}`}
+                                            image={image.gatsbyImageData}
                                             alt={`${experience.title}`}
-                                            className="w-[24%] rounded-lg mt-6 mx-auto object-fill"
+                                            className=" w-[60%] lg:w-[24%] rounded-lg mt-6 mx-auto object-fill"
                                         />
                                     ) : null
                             )}
