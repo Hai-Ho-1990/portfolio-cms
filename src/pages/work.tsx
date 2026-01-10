@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from 'react';
 import { graphql, navigate } from 'gatsby';
 import { ReactLenis, useLenis } from 'lenis/dist/lenis-react';
 import { PageProps } from 'gatsby';
+
 import NavBar from '../components/navbar';
 import WorkIntro from '../components/workIntro';
 import WorkList from '../components/workList';
@@ -103,6 +104,7 @@ const WorkPage = () => {
             </header>
 
             <WorkIntro />
+
             <HorizontalWorkSection />
         </ReactLenis>
     );
