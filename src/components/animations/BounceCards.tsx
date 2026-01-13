@@ -13,6 +13,7 @@ interface BounceCardsProps {
     easeType?: string;
     transformStyles?: string[];
     enableHover?: boolean;
+    forceHover?: boolean;
 }
 
 export default function BounceCards({

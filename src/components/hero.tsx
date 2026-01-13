@@ -3,8 +3,26 @@ import { graphql, useStaticQuery } from 'gatsby';
 import RotatingText from './animations/RotatingText';
 import { documentToReactComponents } from '@contentful/rich-text-react-renderer';
 import { GatsbyImage, getImage } from 'gatsby-plugin-image';
+// import SendIcon from '../images/send-white.svg';
+
+/* =======================
+   Hero Component
+   =======================
+   Ansvar:
+   - Hämta hero-innehåll från Contentful
+   - Rendera rich text
+   - Visa optimerad profilbild
+   - Visa roterande egenskaper
+   - CTA-knapp som scrollar till footer
+======================= */
 
 export default function Hero() {
+    /* =======================
+       DATA FETCHING (CMS)
+       =======================
+       useStaticQuery körs vid build-time.
+       Contentful returnerar alltid en array (nodes).
+    ======================= */
     const data = useStaticQuery(graphql`
         query {
             allContentfulHero {
@@ -12,16 +30,11 @@ export default function Hero() {
                     welcomeText {
                         raw
                     }
-                    techStack {
-                        svg {
-                            url
-                        }
-                    }
                     ctaText
                     profileImage {
                         gatsbyImageData(
                             placeholder: BLURRED
-                            formats: AUTO
+                            formats: [AUTO, WEBP, AVIF]
                             layout: CONSTRAINED
                         )
                     }
@@ -40,37 +53,66 @@ export default function Hero() {
         }
     `);
 
+    /* =======================
+       DATA SELECTION
+       =======================
+       Hero är unikt innehåll,
+       därför används första objektet i arrayen.
+       Optional chaining skyddar om data saknas.
+    ======================= */
     const heroNode = data?.allContentfulHero?.nodes?.[0];
 
+    /* =======================
+       IMAGE HANDLING
+       =======================
+       getImage extraherar rätt bilddata
+       till ett format som GatsbyImage kan använda.
+    ======================= */
     const profileAvatar = getImage(heroNode?.profileImage);
 
-    if (!heroNode) {
-        // Rendera inget, eller en placeholder
-        return null;
-    }
+    /* =======================
+       SAFETY CHECK
+       =======================
+       Om ingen hero-data finns,
+       renderas inget för att undvika fel.
+    ======================= */
+    if (!heroNode) return null;
 
-    const {
-        welcomeText,
+    /* =======================
+       DATA DESTRUCTURING
+       ======================= */
+    const { welcomeText, ctaText, properties, ctaHover } = heroNode;
 
-        ctaText,
-
-        properties,
-        ctaHover
-    } = heroNode;
+    // Fallback for properties to prevent null reference
+    const safeProperties = properties || {};
 
     return (
         <section className="hero-component flex flex-col justify-center items-center pb-4">
+            {/* =======================
+               PROFILE IMAGE
+               =======================
+               Renderas endast om bilddata finns.
+            ======================= */}
             {profileAvatar && (
                 <GatsbyImage
                     image={profileAvatar}
                     alt="Profile picture"
-                    className="w-24 h-24 align-middle rounded-full border-4 border-white"
+                    className="w-24 h-24 rounded-full border-4 border-white"
                 />
             )}
-            <div className="hero-text  flex flex-col justify-center items-center text-center ">
-                {/* Så här renderar man rich text i contentful */}
+
+            {/* =======================
+               HERO TEXT CONTENT
+               ======================= */}
+            <div className="hero-text flex flex-col items-center text-center">
+                {/* =======================
+                   RICH TEXT (Contentful)
+                   =======================
+                   welcomeText.raw är JSON-string
+                   → parsas och renderas till React.
+                ======================= */}
                 {welcomeText?.raw && (
-                    <div className="welcome-text text-[3rem] lg:text-[4.5rem] tracking-tighter  text-[#312B22] mt-6 lowercase leading-[1.1] w-[60%]">
+                    <div className="welcome-text text-[3rem] lg:text-[4.5rem] tracking-tighter leading-[1.1] w-[60%]">
                         {(() => {
                             try {
                                 return documentToReactComponents(
@@ -87,6 +129,12 @@ export default function Hero() {
                     </div>
                 )}
 
+                {/* =======================
+                   ROTATING TEXT
+                   =======================
+                   Visar egenskaper/roller
+                   med fallback-värden för säkerhet.
+                ======================= */}
                 <RotatingText
                     words={[
                         properties.name || '',
@@ -94,50 +142,41 @@ export default function Hero() {
                         properties.thirdProperties || ''
                     ]}
                     interval={3000}
-                    className="text-[3rem] lg:text-[4rem] lg:mt-2 pb-8"
+                    className="text-[3rem] lg:text-[4rem] pb-8"
                 />
             </div>
 
+            {/* =======================
+               CALL TO ACTION (CTA)
+               =======================
+               Knapp med hover-animation
+               som scrollar till footer.
+            ======================= */}
             <div className="pt-6">
                 <button
                     className="cta-button bg-black text-white py-6 px-14 rounded-3xl
-    shadow-[0_12px_20px_-4px_rgba(0,0,0,0.86)]
-    cursor-pointer
-    relative overflow-hidden group"
+                    shadow-[0_12px_20px_-4px_rgba(0,0,0,0.86)]
+                    relative overflow-hidden group"
                     onClick={() => {
                         document.getElementById('footer')?.scrollIntoView({
                             behavior: 'smooth'
                         });
                     }}
                 >
-                    {/* ICON (default) */}
-                    <span
-                        className="
-      absolute inset-0 flex items-center justify-center
-      transition-all duration-300 ease-out
-      opacity-100 translate-y-0
-      group-hover:opacity-0 group-hover:-translate-y-1
-    "
-                    >
+                    {/* Default state – ikon */}
+                    <span className="absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover:opacity-0">
                         {ctaHover?.file?.url && (
                             <img
                                 src={`https:${ctaHover.file.url}`}
-                                alt="CTA hover"
+                                alt="CTA icon"
                                 width={20}
                                 height={20}
                             />
                         )}
                     </span>
-                    {/* TEXT ON HOVER */}
-                    <span
-                        className="
-      absolute inset-0 flex items-center justify-center
-      transition-all duration-300 ease-out
-      opacity-0 translate-y-1
-      group-hover:opacity-100 group-hover:translate-y-0
-      tracking-wide text-sm
-    "
-                    >
+
+                    {/* Hover state – text */}
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-all duration-300 group-hover:opacity-100 text-sm">
                         {ctaText || 'Get in touch'}
                     </span>
                 </button>

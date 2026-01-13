@@ -1,46 +1,62 @@
-// Importerar React och useState-hooken för att hantera state
+// =====================================================
+// IMPORTER
+// =====================================================
+// React + hooks
 import React, { useState } from 'react';
-import { GatsbyImage, getImage, IGatsbyImageData } from 'gatsby-plugin-image';
-import { navigate } from 'gatsby';
-import AnimatedContent from '../components/animations/AnimatedContent';
 
-// Importerar graphql och PageProps från Gatsby
+// Gatsby image utilities (optimerade bilder)
+import { GatsbyImage, getImage, IGatsbyImageData } from 'gatsby-plugin-image';
+
+// Gatsby navigation & GraphQL
+import { navigate } from 'gatsby';
 import { graphql, PageProps } from 'gatsby';
 
-/**---------------- TYPER ---------------- */
+// Animation wrapper
+import AnimatedContent from '../components/animations/AnimatedContent';
+
+/* =====================================================
+   TYPER
+   =====================================================
+   TypeScript-typer som speglar hur
+   datan ser ut i Contentful.
+*/
 
 /**
- * Typ för varje item i tech stacken
+ * Tech stack-item
+ * Kan vara:
+ * - vanlig ikon (svg)
+ * - extern länk
+ * - variant media
  */
 type TechStackItem = {
     title?: string;
     url?: string;
-    icon?: { file?: { url?: string }; url?: string }; // ExternalLink or VariantMedia
+    icon?: { file?: { url?: string }; url?: string };
     svg?: { url?: string };
 };
 
 /**
- * Typ för varje sektion i projektet
- * (ex. Idea, Frontend, Backend)
+ * En sektion i projektet
+ * (ex: Idea, Design, Frontend)
  */
 type ProjectSection = {
-    key: string; // unikt ID, t.ex. "idea"
-    title: string; // rubrik som visas i menyn
-    content: { content: string }; // innehållet från Contentful
-    techStack?: TechStackItem[]; // valfri tech stack för sektionen
-    thumbnail?: { gatsbyImageData: IGatsbyImageData }; // valfri thumbnail-bild för sektionen
+    key: string; // används som ID & meny-nyckel
+    title: string; // visas i menyn
+    content: { content: string }; // textinnehåll
+    techStack?: TechStackItem[]; // valfri tech per sektion
+    thumbnail?: { gatsbyImageData: IGatsbyImageData }; // valfri bild
 };
 
 /**
- * Typ för workPage-strukturen
- * Innehåller en lista av projektsektioner
+ * workPage-struktur från Contentful
+ * Innehåller alla sektioner
  */
 type WorkPage = {
     projectName: ProjectSection[];
 };
 
 /**
- * Typ för datan som kommer från GraphQL-queryn
+ * GraphQL-sidans datatyp
  */
 type PageData = {
     contentfulWorks: {
@@ -52,96 +68,80 @@ type PageData = {
     };
 };
 
-/**
- * Huvudkomponenten för projektsidan
- */
+/* =====================================================
+   PROJECT TEMPLATE
+   =====================================================
+   Huvudkomponenten för varje projekt-sida.
+   Renderas dynamiskt baserat på slug.
+*/
 const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
-    // Hämtar projektet från GraphQL-datan
+    // -------------------------------------------------
+    // Extraherar projektet från GraphQL-datan
+    // -------------------------------------------------
     const work = data.contentfulWorks;
 
-    /**
-     * workPage är en array i Contentful,
-     * så vi plockar första objektet och dess projectName.
-     * Om något saknas → fallback till tom array.
-     */
+    /* -------------------------------------------------
+       workPage är en array i Contentful.
+       Här:
+       - tar vi första objektet
+       - plockar ut projectName (sektionerna)
+       - fallback till tom array om något saknas
+    ------------------------------------------------- */
     const group =
         Array.isArray(work?.workPage) && work?.workPage[0]?.projectName
             ? work?.workPage[0].projectName
             : [];
 
-    /**
-     * State som håller vilken meny som är aktiv.
-     * Default = första objektet i listan.
-     */
+    /* -------------------------------------------------
+       STATE
+       -------------------------------------------------
+       activeMenu  → vilken sektion som är vald
+       hoveredMenu → vilken sektion som hoveras
+       visibleKey  → vilken sektion som visas visuellt
+    ------------------------------------------------- */
     const [activeMenu, setActiveMenu] = useState(group[0]?.key ?? '');
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
     const visibleKey = hoveredMenu ?? activeMenu;
 
-    // Om projektet inte finns → visa felmeddelande
+    // -------------------------------------------------
+    // Säkerhets-checks
+    // -------------------------------------------------
     if (!work) return <p>Projekt hittades inte</p>;
-
-    // Om inga sektioner finns
     if (group.length === 0)
         return <p>Inga sektioner hittades för detta projekt.</p>;
 
     return (
         <>
-            <section className="w-screen h-screen bg-black text-[#c4b8a5] overflow-hidden">
-                {/* Return to previous page */}
-
+            {/* =================================================
+                HUVUDSEKTION
+               ================================================= */}
+            <section className="w-screen min-h-screen lg:h-screen bg-black text-[#c4b8a5] lg:overflow-hidden">
+                {/* -------------------------------------------------
+                   RETURN-KNAPP
+                   -------------------------------------------------
+                   Tar användaren tillbaka till work-översikten
+                */}
                 <button
-                    onClick={() => navigate('/work')} // Gatsby navigate
+                    onClick={() => navigate('/work')}
                     aria-label="Return to work page"
-                    className="fixed left-5 top-5  md:left-10 font-semibold text-[#c4b8a5] rounded-xl shadow-lg flex items-center gap-2 text-[0.7rem] md:text-sm uppercase"
+                    className="fixed left-5 top-5 md:left-10 font-semibold text-[#c4b8a5] rounded-xl shadow-lg flex items-center gap-2 text-[0.7rem] md:text-sm uppercase"
                 >
                     <p>Return</p>
-                    <svg
-                        viewBox="0 0 512 512"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="#c4b8a5"
-                        width={25}
-                    >
-                        <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-                        <g
-                            id="SVGRepo_tracerCarrier"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        ></g>
-                        <g id="SVGRepo_iconCarrier">
-                            <title>ionicons-v5-c</title>
-                            <polyline
-                                points="112 352 48 288 112 224"
-                                style={{
-                                    fill: 'none',
-                                    stroke: '#c4b8a5',
-                                    strokeLinecap: 'round',
-                                    strokeLinejoin: 'round',
-                                    strokeWidth: '20px'
-                                }}
-                            ></polyline>
-                            <path
-                                d="M64,288H358c58.76,0,106-49.33,106-108V160"
-                                style={{
-                                    fill: 'none',
-                                    stroke: '#c4b8a5',
-                                    strokeLinecap: 'round',
-                                    strokeLinejoin: 'round',
-                                    strokeWidth: '20px'
-                                }}
-                            ></path>
-                        </g>
-                    </svg>
                 </button>
 
+                {/* -------------------------------------------------
+                   PROJEKTETS TITEL + INTRO
+                ------------------------------------------------- */}
                 <h1 className="text-center font-bold text-2xl pt-5">
                     {work.title}
                 </h1>
-                <h1 className="text-center text-xs lg:text-base pt-5">
-                    {' '}
+                <p className="text-center text-xs lg:text-base pt-5">
                     The tech stack used in this project includes:
-                </h1>
+                </p>
 
-                {/* // Tech stack för hela projektet */}
+                {/* -------------------------------------------------
+                   TECH STACK (GLOBAL FÖR PROJEKTET)
+                ------------------------------------------------- */}
                 <div className="tech-stack flex gap-4 mt-5 items-center justify-center">
                     {work.techStack.map((tech, i) => {
                         const iconUrl =
@@ -157,7 +157,6 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title={tech.title}
-                                    className="opacity-80 hover:opacity-100 transition"
                                 >
                                     {iconUrl && (
                                         <img
@@ -180,11 +179,18 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                         ) : null;
                     })}
                 </div>
-                {/* Projektdetaljer */}
-                <div className="project-template  pt-16 flex flex-col items-center ">
+
+                {/* =================================================
+                   PROJEKTSEKTIONER
+                   ================================================= */}
+                <div className="project-template pt-16 flex flex-col items-center">
                     <div className="flex flex-col lg:flex-row gap-14 items-center lg:items-start">
-                        {/* MENYKNAPPAR */}
-                        {/* Projekttitel */}
+                        {/* --------------------------------------------
+                           MENY (SEKTIONER)
+                           --------------------------------------------
+                           Klick = aktiv sektion
+                           Hover = förhandsvisning
+                        */}
                         <div className="lg:w-[42vw] flex flex-row lg:flex-col gap-6">
                             {group.map((item) => {
                                 const isActive = item.key === activeMenu;
@@ -199,7 +205,6 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                         onMouseLeave={() =>
                                             setHoveredMenu(null)
                                         }
-                                        aria-label={item.title}
                                         className={
                                             'rounded-xl text-left px-2 lg:px-4 py-2 lg:py-9 transition-all duration-300 ' +
                                             (isActive
@@ -210,35 +215,35 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                         <h4 className="uppercase font-bold text-[0.7rem] lg:text-lg">
                                             {item.title}
                                         </h4>
-                                        <p className=" text-sm leading-6 mt-2 lg:block hidden">
-                                            {item.content.content}
+                                        {/* Beskrivning visas endast på desktop */}
+                                        <p className="text-sm leading-6 mt-2 lg:block hidden">
+                                            {item.content?.content}
                                         </p>
                                     </button>
                                 );
                             })}
                         </div>
-                        {/* THUMBNAIL */}
+
+                        {/* --------------------------------------------
+                           INNEHÅLL / THUMBNAIL
+                           --------------------------------------------
+                           Visar endast den sektion som
+                           matchar visibleKey
+                        */}
                         {group.map(
                             (item) =>
                                 item.key === visibleKey && (
                                     <AnimatedContent
                                         key={item.key}
-                                        className="lg:w-[35vw] w-[80vw] flex flex-col justify-center items-center"
-                                        distance={20}
-                                        direction="vertical"
-                                        reverse={false}
-                                        duration={0.8}
-                                        initialOpacity={1}
-                                        animateOpacity
-                                        scale={1}
-                                        threshold={0.6}
-                                        delay={0}
+                                        className="lg:w-[35vw] w-[80vw]"
                                     >
-                                        <section key={item.key}>
-                                            <p className="text-xs lg:text-sm leading-6 mt-10 block lg:hidden text-center w-[80%] items-center mx-auto">
-                                                {item.content.content}
+                                        <section>
+                                            {/* Mobiltext */}
+                                            <p className="text-xs lg:hidden text-center mt-10">
+                                                {item.content?.content}
                                             </p>
-                                            {/* THUMBNAIL IMAGE */}
+
+                                            {/* Thumbnail-bild */}
                                             <div className="flex justify-center">
                                                 {item.thumbnail
                                                     ?.gatsbyImageData ? (
@@ -248,26 +253,14 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                                                 .gatsbyImageData
                                                         }
                                                         alt={item.title}
-                                                        className=" lg:w-[100%] object-cover rounded-xl mb-4 mt-10 lg:mt-0 mx-auto "
+                                                        className="rounded-xl mt-10"
                                                     />
                                                 ) : (
-                                                    <p className="uppercase text-2xl lg:text-3xl text-[#c4b8a5] font-bold opacity-90 text-center mt-10">
+                                                    <p className="uppercase text-2xl font-bold mt-10">
                                                         No image available
                                                     </p>
                                                 )}
                                             </div>
-
-                                            {/* {item.thumbnail?.url ? (
-                                                <img
-                                                    src={item.thumbnail.url}
-                                                    alt={`${item.title} thumbnail`}
-                                                    className="w-[50%] lg:w-[85%]  object-cover rounded-xl mb-4  mt-10 lg:mt-0 mx-auto"
-                                                />
-                                            ) : (
-                                                <p className="uppercase text-2xl lg:text-3xl text-[#c4b8a5] font-bold opacity-90 text-center mt-10">
-                                                    No image available
-                                                </p>
-                                            )} */}
                                         </section>
                                     </AnimatedContent>
                                 )
@@ -281,12 +274,14 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
 
 export default ProjectTemplate;
 
-/**
- * GraphQL-query som hämtar:
- * - projekt baserat på slug
- * - workPage → projectName (sektionerna)
- * - Hämta det contentfulWorks-objekt där slug är exakt lika med värdet i $slug.
- */
+/* =====================================================
+   GRAPHQL QUERY
+   =====================================================
+   Hämtar:
+   - Ett specifikt projekt via slug
+   - Alla sektioner (projectName)
+   - Projektets globala tech stack
+*/
 export const query = graphql`
     query ($slug: String!) {
         contentfulWorks(slug: { eq: $slug }) {
@@ -295,7 +290,6 @@ export const query = graphql`
             workPage {
                 projectName {
                     key
-                    project
                     content {
                         content
                     }
@@ -303,6 +297,7 @@ export const query = graphql`
                     thumbnail {
                         gatsbyImageData(
                             placeholder: BLURRED
+                            formats: [AUTO, WEBP, AVIF]
                             layout: CONSTRAINED
                         )
                     }
@@ -310,7 +305,6 @@ export const query = graphql`
             }
             techStack {
                 ... on ContentfulTechStack {
-                    techStack
                     svg {
                         url
                     }
@@ -321,7 +315,6 @@ export const query = graphql`
                             url
                         }
                     }
-
                     url
                 }
                 ... on ContentfulVariantMedia {
