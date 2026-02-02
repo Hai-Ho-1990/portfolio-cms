@@ -2,6 +2,11 @@ import type { GatsbyConfig } from 'gatsby';
 import dotenv from 'dotenv';
 dotenv.config();
 
+console.log("CONTENTFUL vars present:", {
+  accessToken: !!process.env.CONTENTFUL_ACCESS_TOKEN,
+  spaceId: !!process.env.CONTENTFUL_SPACE_ID,
+});
+
 const config: GatsbyConfig = {
     siteMetadata: {
         title: `My Portfolio`,

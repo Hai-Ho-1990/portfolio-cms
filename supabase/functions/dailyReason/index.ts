@@ -1,4 +1,3 @@
-
 // =========================
 // Imports
 // =========================
@@ -8,16 +7,30 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // =========================
 // Helpers
 // =========================
+
+/*
+  Säkerställer att en env-variabel finns.
+  Stoppar funktionen direkt om den saknas.
+*/
 function requireEnv(key: string): string {
   const val = Deno.env.get(key)
   if (!val) throw new Error(`Missing env: ${key}`)
   return val
 }
 
+/*
+  Används för retries och enkel backoff
+*/
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/*
+  Fetch-wrapper som:
+  - läser response som text
+  - kastar error vid HTTP-fel
+  - returnerar JSON
+*/
 async function fetchJsonOrThrow(url: string, init?: RequestInit) {
   const resp = await fetch(url, init)
   const text = await resp.text()
@@ -25,6 +38,10 @@ async function fetchJsonOrThrow(url: string, init?: RequestInit) {
   return JSON.parse(text)
 }
 
+/*
+  Fetch med retry-logik.
+  Används mot externa API:er som kan fallera tillfälligt.
+*/
 async function fetchJsonWithRetries<T = any>(
   url: string,
   init: RequestInit | undefined,
@@ -40,8 +57,7 @@ async function fetchJsonWithRetries<T = any>(
       return JSON.parse(text) as T
     } catch (e) {
       lastErr = e
-      console.warn(`Attempt ${i + 1} failed:`, e)
-      if (i < tries - 1) await sleep(delayMs * (i + 1)) // enkel backoff
+      if (i < tries - 1) await sleep(delayMs * (i + 1))
     }
   }
   throw lastErr
@@ -61,19 +77,6 @@ const CONTENTFUL_MANAGEMENT_TOKEN = requireEnv('CONTENTFUL_MANAGEMENT_TOKEN')
 
 const CRON_INVOKE_SECRET = requireEnv('CRON_INVOKE_SECRET')
 
-// Log environment variable presence (mask secrets)
-console.log('[LOG] Function started at', new Date().toISOString())
-console.log('[LOG] ENV presence:', {
-  SUPABASE_URL: !!SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: !!SUPABASE_SERVICE_ROLE_KEY,
-  OPENAI_KEY: !!OPENAI_KEY,
-  CONTENTFUL_SPACE_ID: !!CONTENTFUL_SPACE_ID,
-  CONTENTFUL_ENVIRONMENT: !!CONTENTFUL_ENVIRONMENT,
-  CONTENTFUL_CONTENT_TYPE: !!CONTENTFUL_CONTENT_TYPE,
-  CONTENTFUL_MANAGEMENT_TOKEN: !!CONTENTFUL_MANAGEMENT_TOKEN,
-  CRON_INVOKE_SECRET: !!CRON_INVOKE_SECRET,
-})
-
 // =========================
 // Supabase client
 // =========================
@@ -81,17 +84,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 // =========================
 // OpenAI call with retry
+//
+// - Genererar text med retry + timeout
 // =========================
 async function callOpenAIWithRetry(prompt: string, retries = 3, delayMs = 1000): Promise<string> {
   for (let i = 0; i < retries; i++) {
     let controller = new AbortController();
     let timeoutId: number | undefined = undefined;
     try {
-      console.log(`[LOG] [${new Date().toISOString()}] Calling OpenAI (attempt ${i + 1}) with prompt length:`, prompt.length)
       timeoutId = setTimeout(() => {
         controller.abort();
-        console.error(`[ERROR] [${new Date().toISOString()}] OpenAI fetch timed out after 20s (attempt ${i + 1})`);
-      }, 20000); // 20 seconds
+      }, 20000);
+
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -106,77 +110,79 @@ async function callOpenAIWithRetry(prompt: string, retries = 3, delayMs = 1000):
         }),
         signal: controller.signal,
       });
+
       clearTimeout(timeoutId);
-      console.log(`[LOG] [${new Date().toISOString()}] OpenAI fetch completed (attempt ${i + 1}), status:`, resp.status);
+
       if (!resp.ok) {
         const text = await resp.text();
-        console.error(`[ERROR] [${new Date().toISOString()}] OpenAI response not ok: ${resp.status} - ${text}`);
         throw new Error(`OpenAI error ${resp.status}: ${text}`);
       }
+
       const data = await resp.json();
       const content = data?.choices?.[0]?.message?.content;
+
       if (!content) {
         throw new Error(`Unexpected OpenAI response structure: ${JSON.stringify(data).slice(0, 200)}`);
       }
+
       const result = content.trim();
-      console.log('[LOG] OpenAI result:', result);
+      console.log('[SUCCESS] OpenAI generated reason');
       return result;
     } catch (err) {
       if (timeoutId) clearTimeout(timeoutId);
-      if (err?.name === 'AbortError') {
-        console.error(`[ERROR] [${new Date().toISOString()}] OpenAI fetch aborted due to timeout (attempt ${i + 1})`);
-      } else {
-        console.warn(`[WARN] [${new Date().toISOString()}] OpenAI attempt ${i + 1} failed:`, err);
-      }
-      if (i < retries - 1) await sleep(delayMs * (i + 1)); // enkel backoff
+      if (i < retries - 1) await sleep(delayMs * (i + 1));
     }
   }
-  console.error('[ERROR] OpenAI failed after all retries');
   throw new Error('OpenAI failed after all retries');
 }
 
-// =========================
-// Upsert Contentful entry med automatisk ID-hantering (med retries)
-// =========================
+/* =====================================================
+   CONTENTFUL UPSERT
+   - Skapar eller uppdaterar en entry
+   - Sparar Contentful-ID i Supabase
+===================================================== */
 async function upsertContentfulEntry(reason: string) {
-  // Hämta sparat entry-id från Supabase (om det finns)
-  console.log('[LOG] upsertContentfulEntry called with reason:', reason)
+      /*
+    Hämta tidigare sparat Contentful-entry-ID
+  */
   const { data: entryRecord, error: supabaseErr } = await supabase
     .from('daily_reason_entry')
     .select('*')
     .eq('key', 'daily_reason')
     .maybeSingle()
+
   if (supabaseErr) {
-    console.error('[ERROR] Supabase select error:', supabaseErr)
-    // Abort further processing to avoid duplicate Contentful entries
     throw new Error(`Aborting Contentful upsert due to Supabase select error: ${supabaseErr.message || supabaseErr}`)
   }
 
   let entryId = entryRecord?.contentful_id || ''
   let entry: any = null
 
+  /*
+    Om ett ID finns: försök hämta entry från Contentful
+  */
   try {
-    // Hämta befintlig entry (tillåt 404 → entry=null)
     if (entryId) {
       const getResp = await fetch(
         `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT}/entries/${entryId}`,
         { headers: { Authorization: `Bearer ${CONTENTFUL_MANAGEMENT_TOKEN}` } }
       )
       const text = await getResp.text()
+
       if (!getResp.ok) {
         if (getResp.status === 404) {
           entry = null
-          console.log('[LOG] Contentful entry not found, will create new.')
         } else {
-          console.error(`[ERROR] Contentful fetch error ${getResp.status}: ${text}`)
           throw new Error(`Contentful fetch error ${getResp.status}: ${text}`)
         }
       } else {
         entry = JSON.parse(text)
-        console.log('[LOG] Contentful entry fetched:', entry.sys?.id)
       }
     }
 
+     /*
+    Data som skickas till Contentful
+  */
     const fieldsPayload = {
       fields: {
         title: { 'en-US': `#${new Date().toISOString().slice(0, 10)}` },
@@ -184,9 +190,10 @@ async function upsertContentfulEntry(reason: string) {
       },
     }
 
+    /*
+    Uppdatera eller skapa entry
+  */
     if (entry) {
-      // Uppdatera befintlig entry (med retries)
-      console.log('[LOG] Updating existing Contentful entry:', entryId)
       entry = await fetchJsonWithRetries(
         `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT}/entries/${entryId}`,
         {
@@ -201,10 +208,9 @@ async function upsertContentfulEntry(reason: string) {
         3,
         800
       )
-      console.log('[LOG] Contentful entry updated:', entry.sys?.id)
+      console.log('[SUCCESS] Contentful entry updated');
     } else {
-      // Create new Contentful entry (with retries)
-      console.log('[LOG] Creating new Contentful entry')
+
       entry = await fetchJsonWithRetries(
         `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT}/entries`,
         {
@@ -219,27 +225,33 @@ async function upsertContentfulEntry(reason: string) {
         3,
         800
       )
+
+       /*
+      Spara nytt Contentful-ID i Supabase
+    */
       const entryId = entry?.sys?.id;
       if (!entryId) {
-        console.error('[ERROR] No entryId returned from Contentful entry creation:', entry);
         throw new Error('No entryId returned from Contentful entry creation');
       }
+
       const { error: upsertErr } = await supabase
         .from('daily_reason_entry')
         .upsert({ key: 'daily_reason', contentful_id: entryId }, { onConflict: 'key' });
+
       if (upsertErr) {
-        console.error('[ERROR] Supabase upsert error:', upsertErr);
         throw new Error(`Failed to persist Contentful entry ID: ${upsertErr.message || upsertErr}`);
       }
-      console.log('[LOG] Supabase upserted entryId:', entryId);
+
+      console.log('[SUCCESS] Contentful entry created');
     }
 
-    // Publicera entry (med retries)
+      /*
+    Publicera entry
+  */
     await (async () => {
       let lastErr: any
       for (let i = 0; i < 3; i++) {
         try {
-          console.log(`[LOG] Publishing Contentful entry (attempt ${i + 1}):`, entryId)
           const publishResp = await fetch(
             `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT}/entries/${entryId}/published`,
             {
@@ -251,33 +263,33 @@ async function upsertContentfulEntry(reason: string) {
             }
           )
           const publishText = await publishResp.text()
+
           if (!publishResp.ok) {
-            console.error(`[ERROR] Contentful publish error ${publishResp.status}: ${publishText}`)
             throw new Error(`Contentful publish error ${publishResp.status}: ${publishText}`)
           }
-          console.log('[LOG] Contentful entry published:', entryId)
+
+          console.log('[SUCCESS] Contentful entry published');
           return
         } catch (e) {
           lastErr = e
-          console.warn(`[WARN] Contentful publish attempt ${i + 1} failed:`, e)
           if (i < 2) await sleep(800 * (i + 1))
         }
       }
-      console.error('[ERROR] Contentful publish failed after all retries:', lastErr)
       throw lastErr
     })()
-    console.log('[LOG] upsertContentfulEntry completed for:', entryId)
+
     return entry
   } catch (err) {
-    console.error('[ERROR] upsertContentfulEntry failed:', err)
-
     throw err
   }
 }
 
-// =========================
-// Main logic
-// =========================
+/* =====================================================
+   MAIN LOGIC
+   - Genererar text
+   - Sparar i Supabase
+   - Synkar till Contentful
+===================================================== */
 async function generateDailyReason() {
   const prompt = `
 You are an expert career copywriter specializing in creating persuasive, warm, and personal one-sentence pitches for junior frontend developers.
@@ -301,8 +313,8 @@ Tone & style requirements:
 1. One single sentence.
 2. Highly personal and human, not generic.
 3. Persuasive and confidence-building, yet humble and sincere.
-4. Should make the recruiter feel: “This is a junior developer we want on our team.”
-5. Reflect Hai’s personality, passion, responsibility, and drive.
+4. Should make the recruiter feel: "This is a junior developer we want on our team."
+5. Reflect Hai's personality, passion, responsibility, and drive.
 6. Tailored to what companies commonly look for in junior frontend developers today.
 
 Do NOT write an example — generate one new, original sentence each time the prompt is used.
@@ -314,10 +326,8 @@ Do NOT write an example — generate one new, original sentence each time the pr
     reason = await callOpenAIWithRetry(prompt)
   } catch (err) {
     console.error('OpenAI failed:', err)
-    // Fortsätt med fallback-”reason”
   }
 
-  // Upsert i Supabase
   const { data, error } = await supabase
     .from('daily_reasons')
     .upsert(
@@ -327,14 +337,16 @@ Do NOT write an example — generate one new, original sentence each time the pr
     .select()
     .single()
 
+
   if (error) throw error
 
-  // Upsert i Contentful
+  /*
+    Uppdatera Contentful (fel stoppar inte flödet)
+  */
   try {
     await upsertContentfulEntry(reason)
   } catch (err) {
     console.error('Contentful failed:', err)
-    // Låt funktionen ändå returnera data från Supabase
   }
 
   return data
@@ -347,23 +359,21 @@ serve(async (req) => {
   try {
     const isCron = req.headers.get('x-supabase-cron') === 'true';
     const isManual = req.headers.get('x-invoke-secret') === CRON_INVOKE_SECRET;
-
+    /*
+      Blockerar alla otillåtna anrop
+    */
     if (!isCron && !isManual) {
       return new Response(JSON.stringify({ code: 401, message: 'Unauthorized' }), { status: 401 });
     }
-
-    // =========================
-    // Warm ping handling
-    // =========================
+    /*
+      Cron warm-ping: kör ingen logik
+    */
     if (isCron) {
-        console.log('[LOG] Warm ping received from cron trigger, skipping generation.')
-      // Om det är warm-ping, kör inte hela generateDailyReason
       return new Response(JSON.stringify({ success: true, message: 'warm ping' }), { status: 200 });
     }
-
-    // =========================
-    // Kör din riktiga logik endast om det är manuell trigger
-    // =========================
+    /*
+      Manuell trigger: kör hela flödet
+    */
     const data = await generateDailyReason();
     return new Response(JSON.stringify({ success: true, data }), { status: 200 });
   } catch (err: any) {
