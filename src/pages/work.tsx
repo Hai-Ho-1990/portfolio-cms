@@ -194,30 +194,7 @@ const AdaptiveWorkSection = () => {
 };
 
 /* =====================================================
-   WORK PAGE
-   -----------------------------------------------------
-   - Lenis root-wrapper
-   - Global navigation
-   - Intro + adaptiv work-sektion
-===================================================== */
-const WorkPage = () => {
-    return (
-        <ReactLenis root>
-            <header className="absolute top-0 w-full z-50">
-                <NavBar />
-            </header>
-
-            <WorkIntro />
-
-            <AdaptiveWorkSection />
-        </ReactLenis>
-    );
-};
-
-export default WorkPage;
-
-/* =====================================================
-   SEO / HEAD
+   SEO TYPE
 ===================================================== */
 type WorkSeo = {
     seoTitle?: string;
@@ -239,7 +216,42 @@ type WorkPageData = {
     };
 };
 
-export const Head = ({ location, data }: PageProps<WorkPageData>) => {
+type WorkPageProps = {
+    data: WorkPageData;
+    serverData?: {
+        seo?: WorkSeo;
+    };
+};
+
+/* =====================================================
+   WORK PAGE
+   -----------------------------------------------------
+   - Lenis root-wrapper
+   - Global navigation
+   - Intro + adaptiv work-sektion
+===================================================== */
+const WorkPage = ({ data, serverData }: WorkPageProps) => {
+    return (
+        <ReactLenis root>
+            <header className="absolute top-0 w-full z-50">
+                <NavBar />
+            </header>
+
+            <WorkIntro />
+
+            <AdaptiveWorkSection />
+        </ReactLenis>
+    );
+};
+
+export default WorkPage;
+
+/* =====================================================
+   SEO / HEAD
+   -------------------------------------------------
+   Prioriterar serverData (SSR) över static data
+===================================================== */
+export const Head = ({ location, data, serverData }: any) => {
     const defaultSeo: WorkSeo = {
         seoTitle: 'Work – Hai Ho',
         seoDescription: {
@@ -249,7 +261,10 @@ export const Head = ({ location, data }: PageProps<WorkPageData>) => {
         openGraphImage: undefined
     };
 
-    const seo = data?.allContentfulWorks?.nodes?.[0]?.seo || defaultSeo;
+    const seo =
+        serverData?.seo ||
+        data?.allContentfulWorks?.nodes?.[0]?.seo ||
+        defaultSeo;
 
     return <SEOHead seo={seo} pathname={location.pathname} />;
 };
@@ -278,3 +293,61 @@ export const query = graphql`
         }
     }
 `;
+
+/* =====================================================
+   SERVER-SIDE RENDERING
+   -------------------------------------------------
+   getServerData körs vid varje request.
+   Hämtar SEO-data direkt från Contentful REST API.
+===================================================== */
+export async function getServerData() {
+    try {
+        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
+            await import('../utils/contentful');
+
+        // Hämta works-entries med SEO-referens
+        const result = await fetchContentful({
+            content_type: 'works',
+            include: '2',
+            limit: '1',
+        });
+
+        const entry = result.items?.[0];
+        if (!entry) {
+            return { props: { seo: null } };
+        }
+
+        const assetMap = buildAssetMap(result.includes);
+        const entryMap = buildEntryMap(result.includes);
+
+        // Resolva SEO-referensen
+        const seoRef = entry.fields?.seo;
+        const seoEntry = seoRef?.sys
+            ? resolveLink(seoRef, assetMap, entryMap)
+            : null;
+
+        let seo: WorkSeo | null = null;
+
+        if (seoEntry) {
+            const ogImageRef = seoEntry.fields?.openGraphImage;
+            const ogAsset = ogImageRef?.sys
+                ? resolveLink(ogImageRef, assetMap, entryMap)
+                : null;
+
+            seo = {
+                seoTitle: seoEntry.fields?.seoTitle,
+                seoDescription: seoEntry.fields?.seoDescription
+                    ? { seoDescription: seoEntry.fields.seoDescription }
+                    : undefined,
+                openGraphImage: ogAsset?.fields?.file
+                    ? { file: { url: ogAsset.fields.file.url } }
+                    : undefined,
+            };
+        }
+
+        return { props: { seo } };
+    } catch (error) {
+        console.error('getServerData error (work):', error);
+        return { props: { seo: null } };
+    }
+}

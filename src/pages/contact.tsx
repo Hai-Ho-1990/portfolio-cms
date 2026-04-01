@@ -18,3 +18,16 @@ export default function Contact() {
         </section>
     );
 }
+
+/* =====================================================
+   SERVER-SIDE RENDERING
+   -------------------------------------------------
+   Aven om contact-sidan inte har nagon data att hamta
+   aktiverar getServerData SSR-rendring pa Netlify,
+   sa sidan serveras dynamiskt vid varje request.
+===================================================== */
+export async function getServerData() {
+    return {
+        props: {},
+    };
+}

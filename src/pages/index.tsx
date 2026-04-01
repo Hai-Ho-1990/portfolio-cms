@@ -166,32 +166,40 @@ const LenisScrollSection: React.FC = () => {
 };
 
 /* =====================================================
+   SEO TYPE
+===================================================== */
+type SeoData = {
+    seoTitle?: string;
+    seoDescription?: {
+        seoDescription?: string;
+    };
+    openGraphImage?: {
+        file?: {
+            url?: string;
+        };
+    };
+};
+
+/* =====================================================
    PAGE TYPES
 ===================================================== */
 type IndexPageProps = {
     data: {
         allContentfulHero: {
             nodes: Array<{
-                seo: {
-                    seoTitle?: string;
-                    seoDescription?: {
-                        seoDescription?: string;
-                    };
-                    openGraphImage?: {
-                        file?: {
-                            url?: string;
-                        };
-                    };
-                };
+                seo: SeoData;
             }>;
         };
+    };
+    serverData?: {
+        seo?: SeoData;
     };
 };
 
 /* =====================================================
    INDEX PAGE
 ===================================================== */
-const IndexPage = ({ data }: IndexPageProps) => {
+const IndexPage = ({ data, serverData }: IndexPageProps) => {
     return (
         <Layout>
             <AboutSection />
@@ -203,13 +211,74 @@ const IndexPage = ({ data }: IndexPageProps) => {
 
 /* =====================================================
    SEO / HEAD
+   -------------------------------------------------
+   Prioriterar serverData (SSR) över static data
 ===================================================== */
-export const Head = ({ location, data }: any) => {
-    const seo = data?.allContentfulHero?.nodes?.[0]?.seo;
+export const Head = ({ location, data, serverData }: any) => {
+    const seo =
+        serverData?.seo ||
+        data?.allContentfulHero?.nodes?.[0]?.seo;
     return <SEOHead seo={seo} pathname={location.pathname} />;
 };
 
 export default IndexPage;
+
+/* =====================================================
+   SERVER-SIDE RENDERING
+   -------------------------------------------------
+   getServerData körs vid varje request.
+   Hämtar SEO-data direkt från Contentful REST API.
+===================================================== */
+export async function getServerData() {
+    try {
+        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
+            await import('../utils/contentful');
+
+        // Hämta hero-entries (content_type = "hero") med SEO-referens
+        const result = await fetchContentful({
+            content_type: 'hero',
+            include: '2',
+        });
+
+        const entry = result.items?.[0];
+        if (!entry) {
+            return { props: { seo: null } };
+        }
+
+        const assetMap = buildAssetMap(result.includes);
+        const entryMap = buildEntryMap(result.includes);
+
+        // Resolva SEO-referensen
+        const seoRef = entry.fields?.seo;
+        const seoEntry = seoRef?.sys
+            ? resolveLink(seoRef, assetMap, entryMap)
+            : null;
+
+        let seo: SeoData | null = null;
+
+        if (seoEntry) {
+            const ogImageRef = seoEntry.fields?.openGraphImage;
+            const ogAsset = ogImageRef?.sys
+                ? resolveLink(ogImageRef, assetMap, entryMap)
+                : null;
+
+            seo = {
+                seoTitle: seoEntry.fields?.seoTitle,
+                seoDescription: seoEntry.fields?.seoDescription
+                    ? { seoDescription: seoEntry.fields.seoDescription }
+                    : undefined,
+                openGraphImage: ogAsset?.fields?.file
+                    ? { file: { url: ogAsset.fields.file.url } }
+                    : undefined,
+            };
+        }
+
+        return { props: { seo } };
+    } catch (error) {
+        console.error('getServerData error (index):', error);
+        return { props: { seo: null } };
+    }
+}
 
 /* =====================================================
    GRAPHQL QUERY

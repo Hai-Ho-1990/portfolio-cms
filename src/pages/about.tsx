@@ -8,14 +8,27 @@ import { graphql } from 'gatsby';
 import Biography from '../components/biography';
 
 /* =======================
+   SEO TYPE
+======================= */
+type AboutSeo = {
+    seoTitle?: string;
+    seoDescription?: {
+        seoDescription?: string;
+    };
+    openGraphImage?: {
+        file?: { url?: string };
+    };
+};
+
+/* =======================
    PAGE COMPONENT
    =======================
-   Huvudkomponenten för /about-sidan.
-   Innesluter innehållet i ReactLenis för
+   Huvudkomponenten for /about-sidan.
+   Innesluter innehallet i ReactLenis for
    smooth scroll, renderar navbar, biografi,
    erfarenheter och en horisontell scrollsektion.
 */
-export default function About() {
+export default function About({ data, serverData }: any) {
     return (
         <ReactLenis root>
             {/* Sticky/header-sektionen */}
@@ -36,11 +49,10 @@ export default function About() {
 /* =======================
    HEAD (SEO)
    =======================
-   Gatsby Head API används för att generera <head>-taggar.
-   Renderar SEOHead-komponenten med antingen Contentful-data
-   eller fallback/default värden.
+   Gatsby Head API anvands for att generera <head>-taggar.
+   Prioriterar serverData (SSR) over static data.
 */
-export const Head = ({ location, data }: any) => {
+export const Head = ({ location, data, serverData }: any) => {
     const defaultSeo = {
         seoTitle: 'About – Hai Ho',
         seoDescription: {
@@ -50,8 +62,11 @@ export const Head = ({ location, data }: any) => {
         openGraphImage: null
     };
 
-    // Plocka SEO-data från Contentful om tillgänglig
-    const seo = data?.allContentfulAboutMePage?.nodes?.[0]?.seo || defaultSeo;
+    // Plocka SEO-data: serverData forst, sedan Contentful static, sedan default
+    const seo =
+        serverData?.seo ||
+        data?.allContentfulAboutMePage?.nodes?.[0]?.seo ||
+        defaultSeo;
 
     return <SEOHead seo={seo} pathname={location.pathname} />;
 };
@@ -59,11 +74,8 @@ export const Head = ({ location, data }: any) => {
 /* =======================
    PAGE QUERY
    =======================
-   GraphQL-query som hämtar SEO-data från Contentful
-   för /about-sidan och skickar dessa till SEOHead.tsx
-   - Titel
-   - Meta description
-   - OpenGraph-bild
+   GraphQL-query som hamtar SEO-data fran Contentful
+   for /about-sidan och skickar dessa till SEOHead.tsx
 */
 export const query = graphql`
     query {
@@ -82,3 +94,61 @@ export const query = graphql`
         }
     }
 `;
+
+/* =======================
+   SERVER-SIDE RENDERING
+   =======================
+   getServerData kors vid varje request.
+   Hamtar SEO-data direkt fran Contentful REST API.
+*/
+export async function getServerData() {
+    try {
+        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
+            await import('../utils/contentful');
+
+        // Hamta aboutMePage-entries med SEO-referens
+        const result = await fetchContentful({
+            content_type: 'aboutMePage',
+            include: '2',
+            limit: '1',
+        });
+
+        const entry = result.items?.[0];
+        if (!entry) {
+            return { props: { seo: null } };
+        }
+
+        const assetMap = buildAssetMap(result.includes);
+        const entryMap = buildEntryMap(result.includes);
+
+        // Resolva SEO-referensen
+        const seoRef = entry.fields?.seo;
+        const seoEntry = seoRef?.sys
+            ? resolveLink(seoRef, assetMap, entryMap)
+            : null;
+
+        let seo: AboutSeo | null = null;
+
+        if (seoEntry) {
+            const ogImageRef = seoEntry.fields?.openGraphImage;
+            const ogAsset = ogImageRef?.sys
+                ? resolveLink(ogImageRef, assetMap, entryMap)
+                : null;
+
+            seo = {
+                seoTitle: seoEntry.fields?.seoTitle,
+                seoDescription: seoEntry.fields?.seoDescription
+                    ? { seoDescription: seoEntry.fields.seoDescription }
+                    : undefined,
+                openGraphImage: ogAsset?.fields?.file
+                    ? { file: { url: ogAsset.fields.file.url } }
+                    : undefined,
+            };
+        }
+
+        return { props: { seo } };
+    } catch (error) {
+        console.error('getServerData error (about):', error);
+        return { props: { seo: null } };
+    }
+}

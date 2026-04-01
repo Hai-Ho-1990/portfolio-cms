@@ -44,7 +44,10 @@ type ProjectSection = {
     title: string; // visas i menyn
     content: { content: string }; // textinnehåll
     techStack?: TechStackItem[]; // valfri tech per sektion
-    thumbnail?: { gatsbyImageData: IGatsbyImageData }; // valfri bild
+    thumbnail?: {
+        gatsbyImageData?: IGatsbyImageData; // build-time (Gatsby GraphQL)
+        url?: string; // SSR fallback (Contentful REST API)
+    };
 };
 
 /**
@@ -68,17 +71,29 @@ type PageData = {
     };
 };
 
+/**
+ * ServerData-typ fran getServerData (SSR)
+ * Samma struktur som PageData men utan gatsbyImageData
+ */
+type ServerDataWork = {
+    slug: string;
+    title: string;
+    workPage?: WorkPage[];
+    techStack: TechStackItem[];
+};
+
 /* =====================================================
    PROJECT TEMPLATE
    =====================================================
-   Huvudkomponenten för varje projekt-sida.
-   Renderas dynamiskt baserat på slug.
+   Huvudkomponenten for varje projekt-sida.
+   Renderas dynamiskt baserat pa slug.
+   Prioriterar serverData (SSR) over static data.
 */
-const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
+const ProjectTemplate: React.FC<PageProps<PageData> & { serverData?: { work?: ServerDataWork } }> = ({ data, serverData }) => {
     // -------------------------------------------------
-    // Extraherar projektet från GraphQL-datan
+    // Extraherar projektet: serverData forst, sedan static
     // -------------------------------------------------
-    const work = data.contentfulWorks;
+    const work = serverData?.work || data.contentfulWorks;
 
     /* -------------------------------------------------
        workPage är en array i Contentful.
@@ -255,6 +270,17 @@ const ProjectTemplate: React.FC<PageProps<PageData>> = ({ data }) => {
                                                         alt={item.title}
                                                         className="rounded-xl mt-10"
                                                     />
+                                                ) : item.thumbnail?.url ? (
+                                                    <img
+                                                        src={
+                                                            item.thumbnail.url.startsWith('//')
+                                                                ? `https:${item.thumbnail.url}`
+                                                                : item.thumbnail.url
+                                                        }
+                                                        alt={item.title}
+                                                        className="rounded-xl mt-10"
+                                                        loading="lazy"
+                                                    />
                                                 ) : (
                                                     <p className="uppercase text-2xl font-bold mt-10">
                                                         No image available
@@ -326,3 +352,132 @@ export const query = graphql`
         }
     }
 `;
+
+/* =====================================================
+   SERVER-SIDE RENDERING
+   =====================================================
+   getServerData kors vid varje request for dynamiska
+   projekt-sidor. Hamtar projektet via slug fran
+   Contentful REST API och resolver alla referenser.
+===================================================== */
+export async function getServerData({ params }: { params: Record<string, string> }) {
+    try {
+        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
+            await import('../utils/contentful');
+
+        const slug = params.slug || params['*'];
+
+        // Hamta works-entry med matchande slug
+        const result = await fetchContentful({
+            content_type: 'works',
+            'fields.slug': slug,
+            include: '10',
+            limit: '1',
+        });
+
+        const entry = result.items?.[0];
+        if (!entry) {
+            return { props: { work: null } };
+        }
+
+        const assetMap = buildAssetMap(result.includes);
+        const entryMap = buildEntryMap(result.includes);
+
+        // Resolva tech stack (blandning av olika content types)
+        const techStack: TechStackItem[] = [];
+        if (Array.isArray(entry.fields?.techStack)) {
+            for (const ref of entry.fields.techStack) {
+                const resolved = ref?.sys ? resolveLink(ref, assetMap, entryMap) : null;
+                if (!resolved) continue;
+
+                const contentTypeId = resolved.sys?.contentType?.sys?.id;
+                const fields = resolved.fields || {};
+
+                if (contentTypeId === 'techStack') {
+                    // ContentfulTechStack: har svg-referens (asset)
+                    const svgAsset = fields.svg?.sys
+                        ? resolveLink(fields.svg, assetMap, entryMap)
+                        : null;
+                    techStack.push({
+                        title: fields.title,
+                        svg: svgAsset?.fields?.file
+                            ? { url: `https:${svgAsset.fields.file.url}` }
+                            : undefined,
+                    });
+                } else if (contentTypeId === 'externalLink') {
+                    // ContentfulExternalLink: har icon (asset) + url
+                    const iconAsset = fields.icon?.sys
+                        ? resolveLink(fields.icon, assetMap, entryMap)
+                        : null;
+                    techStack.push({
+                        title: fields.title,
+                        url: fields.url,
+                        icon: iconAsset?.fields?.file
+                            ? { file: { url: `https:${iconAsset.fields.file.url}` } }
+                            : undefined,
+                    });
+                } else if (contentTypeId === 'variantMedia') {
+                    // ContentfulVariantMedia: har icon (asset)
+                    const iconAsset = fields.icon?.sys
+                        ? resolveLink(fields.icon, assetMap, entryMap)
+                        : null;
+                    techStack.push({
+                        title: fields.title,
+                        icon: iconAsset?.fields?.file
+                            ? { url: `https:${iconAsset.fields.file.url}` }
+                            : undefined,
+                    });
+                }
+            }
+        }
+
+        // Resolva workPage -> projectName sektioner
+        const workPageEntries: WorkPage[] = [];
+        if (Array.isArray(entry.fields?.workPage)) {
+            for (const wpRef of entry.fields.workPage) {
+                const wpEntry = wpRef?.sys
+                    ? resolveLink(wpRef, assetMap, entryMap)
+                    : null;
+                if (!wpEntry?.fields?.projectName) continue;
+
+                const sections: ProjectSection[] = [];
+                for (const secRef of wpEntry.fields.projectName) {
+                    const secEntry = secRef?.sys
+                        ? resolveLink(secRef, assetMap, entryMap)
+                        : null;
+                    if (!secEntry) continue;
+
+                    // Resolva thumbnail (asset)
+                    const thumbAsset = secEntry.fields?.thumbnail?.sys
+                        ? resolveLink(secEntry.fields.thumbnail, assetMap, entryMap)
+                        : null;
+
+                    sections.push({
+                        key: secEntry.fields?.key || secEntry.sys.id,
+                        title: secEntry.fields?.title || '',
+                        content: {
+                            content: secEntry.fields?.content || '',
+                        },
+                        thumbnail: thumbAsset?.fields?.file
+                            ? { url: `https:${thumbAsset.fields.file.url}` }
+                            : undefined,
+                    });
+                }
+
+                workPageEntries.push({ projectName: sections });
+            }
+        }
+
+        const work: ServerDataWork = {
+            slug: entry.fields?.slug || slug,
+            title: entry.fields?.title || '',
+            workPage: workPageEntries.length > 0 ? workPageEntries : undefined,
+            techStack,
+        };
+
+        return { props: { work } };
+    } catch (error) {
+        console.error('getServerData error (projectTemplate):', error);
+        return { props: { work: null } };
+    }
+}
