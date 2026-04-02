@@ -11,7 +11,18 @@ import AnimatedContent from './animations/AnimatedContent';
    - Rendera titel, subtitle och rich text
    - Animera innehållet vid render
 ======================= */
-export default function WorkIntro() {
+/* =======================
+   WorkIntro Props Type
+======================= */
+type WorkIntroDataType = {
+    content?: { raw: string };
+    helpIcon?: { file?: { url?: string } };
+    subTitle?: string;
+    title?: string;
+    helpText?: string;
+};
+
+export default function WorkIntro({ workIntroData: propData }: { workIntroData?: WorkIntroDataType } = {}) {
     /* =======================
        GRAPHQL QUERY
        =======================
@@ -45,12 +56,10 @@ export default function WorkIntro() {
     /* =======================
        DATA SELECTION
        =======================
-       Använder första noden
-       (Contentful singleton-mönster)
-       Optional chaining skyddar
-       mot undefined
+       Om propData finns → använd det (SSR)
+       Annars → fallback till useStaticQuery (build-time)
     ======================= */
-    const workIntroData = data.allContentfulWorkIntro?.nodes?.[0];
+    const workIntroData = propData ?? data.allContentfulWorkIntro?.nodes?.[0];
 
     /* =======================
        SAFETY CHECK

@@ -12,7 +12,7 @@ import { useLenis } from 'lenis/dist/lenis-react';
    - Horisontell lista med Recommendations
    - Visar "Return Home"-knapp när scrollen når slutet
 */
-const DesktopHorizontalRecommendationSection = () => {
+const DesktopHorizontalRecommendationSection = ({ recommendationsData }: { recommendationsData?: any[] }) => {
     const ulRef = useRef<HTMLUListElement>(null);
     const sectionRef = useRef<HTMLElement>(null);
     const headerRef = useRef<HTMLDivElement>(null);
@@ -115,7 +115,7 @@ const DesktopHorizontalRecommendationSection = () => {
                 ref={ulRef}
                 className="flex sticky top-0 left-0 h-screen will-change-transform"
             >
-                <Recommendations isMobile={false} />
+                <Recommendations isMobile={false} recommendationsData={recommendationsData} />
             </ul>
 
             {/* Return Home-knapp */}
@@ -174,12 +174,12 @@ const DesktopHorizontalRecommendationSection = () => {
    - Vertikal lista med Recommendations
    - Return Home-knapp längst ner
 */
-const MobileVerticalRecommendationSection = () => {
+const MobileVerticalRecommendationSection = ({ recommendationsData }: { recommendationsData?: any[] }) => {
     return (
         <section className="w-full bg-black">
             <RecommendationsHeader />
 
-            <Recommendations isMobile={true} />
+            <Recommendations isMobile={true} recommendationsData={recommendationsData} />
 
             <div className="w-full bg-black py-10 flex justify-center">
                 <button
@@ -237,7 +237,7 @@ const MobileVerticalRecommendationSection = () => {
    - Baserat på skärmbredd (<1024px = mobil)
    - Förhindrar hydration mismatch
 */
-const AdaptiveRecommendationSection = () => {
+const AdaptiveRecommendationSection = ({ recommendationsData }: { recommendationsData?: any[] }) => {
     const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -256,9 +256,9 @@ const AdaptiveRecommendationSection = () => {
     }
 
     return isMobile ? (
-        <MobileVerticalRecommendationSection />
+        <MobileVerticalRecommendationSection recommendationsData={recommendationsData} />
     ) : (
-        <DesktopHorizontalRecommendationSection />
+        <DesktopHorizontalRecommendationSection recommendationsData={recommendationsData} />
     );
 };
 

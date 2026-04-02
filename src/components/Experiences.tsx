@@ -21,11 +21,19 @@ interface Experience {
     startYear: number; // Startår (används för sortering)
     thumbnail?: {
         // Valfri lista med bilder
-        gatsbyImageData: IGatsbyImageData;
+        gatsbyImageData?: IGatsbyImageData;
+        url?: string;
     }[];
 }
 
-export default function Experiences() {
+/* =======================
+   Experiences Props Type
+======================= */
+type ExperiencesProps = {
+    experiencesData?: Experience[];
+};
+
+export default function Experiences({ experiencesData: propData }: ExperiencesProps = {}) {
     /**
      * useStaticQuery körs vid build-time
      * Hämtar alla experiences från Contentful
@@ -52,11 +60,10 @@ export default function Experiences() {
     `);
 
     /**
-     * Hämtar arrayen med experiences
-     * Om data saknas → använd tom array
-     * (förhindrar .map()-fel)
+     * Om propData finns → använd det (SSR)
+     * Annars → fallback till useStaticQuery (build-time)
      */
-    const experiencesData = data.allContentfulExperiences?.nodes || [];
+    const experiencesData = propData ?? data.allContentfulExperiences?.nodes ?? [];
 
     return (
         <section className="w-screen flex items-center justify-start lg:pl-20 pr-4 bg-[#fafafa]">
@@ -87,16 +94,25 @@ export default function Experiences() {
                             {experience.thumbnail?.map(
                                 (
                                     image: {
-                                        gatsbyImageData: IGatsbyImageData;
+                                        gatsbyImageData?: IGatsbyImageData;
+                                        url?: string;
                                     },
                                     index: number
                                 ) =>
-                                    // Rendera endast om bilddata finns
+                                    // Rendera GatsbyImage om bilddata finns, annars img-tagg för SSR URL
                                     image?.gatsbyImageData ? (
                                         <GatsbyImage
                                             key={`${experience.title}-${index}`}
                                             image={image.gatsbyImageData}
                                             alt={`${experience.title}`}
+                                            className="w-[60%] lg:w-[24%] rounded-lg mt-6 mx-auto object-fill"
+                                        />
+                                    ) : image?.url ? (
+                                        <img
+                                            key={`${experience.title}-${index}`}
+                                            src={image.url}
+                                            alt={`${experience.title}`}
+                                            loading="lazy"
                                             className="w-[60%] lg:w-[24%] rounded-lg mt-6 mx-auto object-fill"
                                         />
                                     ) : null

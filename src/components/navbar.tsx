@@ -27,7 +27,7 @@ type NavItem = {
    - Rendera navigation som en horisontell lista
    - Hantera nya flikar med target="_blank" och rel
 ======================= */
-export default function NavBar() {
+export default function NavBar({ navItems }: { navItems?: NavItem[] } = {}) {
     /* =======================
        DATA FETCHING
        =======================
@@ -54,11 +54,11 @@ export default function NavBar() {
     /* =======================
        DATA EXTRACTION
        =======================
-       - Tar första Contentful navigation node
-       - Om inga items → fallback till tom array
+       - Om navItems prop finns → använd det (SSR)
+       - Annars → fallback till useStaticQuery (build-time)
     ======================= */
     const items: NavItem[] =
-        data?.allContentfulNavigation?.nodes?.[0]?.items ?? [];
+        navItems ?? data?.allContentfulNavigation?.nodes?.[0]?.items ?? [];
 
     /* =======================
        SORTERA ITEMS

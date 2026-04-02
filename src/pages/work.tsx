@@ -19,7 +19,7 @@ import { SEOHead } from '../components/SEOHead';
    - Header döljs när scrollen är klar
    - "Return Home"-knapp visas i slutet
 ===================================================== */
-const DesktopHorizontalWorkSection = () => {
+const DesktopHorizontalWorkSection = ({ worksData }: { worksData?: any[] }) => {
     const ulRef = useRef<HTMLUListElement>(null); // <ul> som flyttas horisontellt
     const sectionRef = useRef<HTMLElement>(null); // Wrapper-sektion som styr scroll-längden
     const headerRef = useRef<HTMLDivElement>(null); // Sticky header
@@ -120,7 +120,7 @@ const DesktopHorizontalWorkSection = () => {
                 ref={ulRef}
                 className="flex sticky top-0 left-0 h-screen will-change-transform"
             >
-                <WorkList isMobile={false} />
+                <WorkList isMobile={false} worksData={worksData} />
             </ul>
 
             {/* Return-knapp visas efter sista slide */}
@@ -144,10 +144,10 @@ const DesktopHorizontalWorkSection = () => {
    - Works renderas staplade vertikalt
    - Return-knapp längst ner
 ===================================================== */
-const MobileVerticalWorkSection = () => {
+const MobileVerticalWorkSection = ({ worksData }: { worksData?: any[] }) => {
     return (
         <section className="w-full">
-            <WorkList isMobile={true} />
+            <WorkList isMobile={true} worksData={worksData} />
 
             <div className="w-full bg-black py-10 flex justify-center">
                 <button
@@ -168,7 +168,7 @@ const MobileVerticalWorkSection = () => {
    - Avgör layout baserat på viewport-bredd
    - Returnerar null tills client-side är redo
 ===================================================== */
-const AdaptiveWorkSection = () => {
+const AdaptiveWorkSection = ({ worksData }: { worksData?: any[] }) => {
     const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -187,9 +187,9 @@ const AdaptiveWorkSection = () => {
     }
 
     return isMobile ? (
-        <MobileVerticalWorkSection />
+        <MobileVerticalWorkSection worksData={worksData} />
     ) : (
-        <DesktopHorizontalWorkSection />
+        <DesktopHorizontalWorkSection worksData={worksData} />
     );
 };
 
@@ -220,6 +220,9 @@ type WorkPageProps = {
     data: WorkPageData;
     serverData?: {
         seo?: WorkSeo;
+        navItems?: any[];
+        workIntroData?: any;
+        worksData?: any[];
     };
 };
 
@@ -234,12 +237,12 @@ const WorkPage = ({ data, serverData }: WorkPageProps) => {
     return (
         <ReactLenis root>
             <header className="absolute top-0 w-full z-50">
-                <NavBar />
+                <NavBar navItems={serverData?.navItems} />
             </header>
 
-            <WorkIntro />
+            <WorkIntro workIntroData={serverData?.workIntroData} />
 
-            <AdaptiveWorkSection />
+            <AdaptiveWorkSection worksData={serverData?.worksData} />
         </ReactLenis>
     );
 };
@@ -302,52 +305,21 @@ export const query = graphql`
 ===================================================== */
 export async function getServerData() {
     try {
-        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
-            await import('../utils/contentful');
+        const { fetchNavItems, fetchWorkIntro, fetchWorks, fetchWorksSeo } =
+            await import('../utils/ssrDataFetchers');
 
-        // Hämta works-entries med SEO-referens
-        const result = await fetchContentful({
-            content_type: 'works',
-            include: '2',
-            limit: '1',
-        });
+        const [navItems, workIntroData, worksData, seo] = await Promise.all([
+            fetchNavItems(),
+            fetchWorkIntro(),
+            fetchWorks(),
+            fetchWorksSeo(),
+        ]);
 
-        const entry = result.items?.[0];
-        if (!entry) {
-            return { props: { seo: null } };
-        }
-
-        const assetMap = buildAssetMap(result.includes);
-        const entryMap = buildEntryMap(result.includes);
-
-        // Resolva SEO-referensen
-        const seoRef = entry.fields?.seo;
-        const seoEntry = seoRef?.sys
-            ? resolveLink(seoRef, assetMap, entryMap)
-            : null;
-
-        let seo: WorkSeo | null = null;
-
-        if (seoEntry) {
-            const ogImageRef = seoEntry.fields?.openGraphImage;
-            const ogAsset = ogImageRef?.sys
-                ? resolveLink(ogImageRef, assetMap, entryMap)
-                : null;
-
-            seo = {
-                seoTitle: seoEntry.fields?.seoTitle,
-                seoDescription: seoEntry.fields?.seoDescription
-                    ? { seoDescription: seoEntry.fields.seoDescription }
-                    : undefined,
-                openGraphImage: ogAsset?.fields?.file
-                    ? { file: { url: ogAsset.fields.file.url } }
-                    : undefined,
-            };
-        }
-
-        return { props: { seo } };
+        return {
+            props: { seo, navItems, workIntroData, worksData },
+        };
     } catch (error) {
         console.error('getServerData error (work):', error);
-        return { props: { seo: null } };
+        return { props: {} };
     }
 }

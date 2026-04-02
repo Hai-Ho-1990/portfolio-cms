@@ -3,9 +3,14 @@ import { gsap } from 'gsap';
 import React from 'react';
 import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
 
+/* =======================
+   Image type: supports both GatsbyImage data and plain URLs
+======================= */
+type BounceCardImage = IGatsbyImageData | string;
+
 interface BounceCardsProps {
     className?: string;
-    images?: IGatsbyImageData[];
+    images?: BounceCardImage[];
     containerWidth?: number;
     containerHeight?: number;
     animationDelay?: number;
@@ -156,11 +161,20 @@ export default function BounceCards({
                     onMouseEnter={() => pushSiblings(idx)}
                     onMouseLeave={resetSiblings}
                 >
-                    <GatsbyImage
-                        image={image}
-                        alt={`Bounce card ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                    />
+                    {typeof image === 'string' ? (
+                        <img
+                            src={image}
+                            alt={`Bounce card ${idx + 1}`}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <GatsbyImage
+                            image={image}
+                            alt={`Bounce card ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                        />
+                    )}
                 </div>
             ))}
         </div>

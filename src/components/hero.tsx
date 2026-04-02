@@ -16,7 +16,20 @@ import { GatsbyImage, getImage } from 'gatsby-plugin-image';
    - CTA-knapp som scrollar till footer
 ======================= */
 
-export default function Hero() {
+/* =======================
+   Hero Props Type
+   =======================
+   Optional SSR data prop
+======================= */
+type HeroData = {
+    welcomeText?: { raw: string };
+    ctaText?: string;
+    profileImage?: { gatsbyImageData?: any; url?: string };
+    properties?: { name: string; secondProperties: string; thirdProperties: string };
+    ctaHover?: { file?: { url?: string } };
+};
+
+export default function Hero({ heroData }: { heroData?: HeroData } = {}) {
     /* =======================
        DATA FETCHING (CMS)
        =======================
@@ -56,19 +69,22 @@ export default function Hero() {
     /* =======================
        DATA SELECTION
        =======================
-       Hero är unikt innehåll,
-       därför används första objektet i arrayen.
-       Optional chaining skyddar om data saknas.
+       Om heroData prop finns → använd det (SSR)
+       Annars → fallback till useStaticQuery (build-time)
     ======================= */
-    const heroNode = data?.allContentfulHero?.nodes?.[0];
+    const heroNode = heroData ?? data?.allContentfulHero?.nodes?.[0];
 
     /* =======================
        IMAGE HANDLING
        =======================
        getImage extraherar rätt bilddata
        till ett format som GatsbyImage kan använda.
+       Om SSR-data: profileImage kan ha url istället.
     ======================= */
-    const profileAvatar = getImage(heroNode?.profileImage);
+    const profileAvatar = heroNode?.profileImage?.gatsbyImageData
+        ? getImage(heroNode.profileImage)
+        : null;
+    const profileImageUrl = heroNode?.profileImage?.url || null;
 
     /* =======================
        SAFETY CHECK
@@ -93,13 +109,20 @@ export default function Hero() {
                =======================
                Renderas endast om bilddata finns.
             ======================= */}
-            {profileAvatar && (
+            {profileAvatar ? (
                 <GatsbyImage
                     image={profileAvatar}
                     alt="Profile picture"
                     className="w-24 h-24 rounded-full border-4 border-white"
                 />
-            )}
+            ) : profileImageUrl ? (
+                <img
+                    src={profileImageUrl}
+                    alt="Profile picture"
+                    loading="lazy"
+                    className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                />
+            ) : null}
 
             {/* =======================
                HERO TEXT CONTENT

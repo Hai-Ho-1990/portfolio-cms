@@ -8,7 +8,7 @@ import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
 ======================= */
 interface Recommendation {
     reference?: string; // Länk till profil / källa
-    avatar?: { gatsbyImageData: IGatsbyImageData }; // Profilbild
+    avatar?: { gatsbyImageData?: IGatsbyImageData; url?: string }; // Profilbild (stöder SSR URL)
     name: string;
     position: string;
     recommendation: { recommendation: string }; // Själva rekommendationen
@@ -16,13 +16,15 @@ interface Recommendation {
 
 interface RecommendationsProps {
     isMobile?: boolean; // Optional prop för att forcera mobil-layout
+    recommendationsData?: Recommendation[]; // Optional SSR data
 }
 
 /* =======================
    HUVUDKOMPONENT
 ======================= */
 export default function Recommendations({
-    isMobile: propIsMobile
+    isMobile: propIsMobile,
+    recommendationsData: propData
 }: RecommendationsProps = {}) {
     // State för att kolla viewport (mobil eller desktop)
     const [isMobile, setIsMobile] = useState<boolean>(() => {
@@ -82,7 +84,7 @@ export default function Recommendations({
     `);
 
     const recommendationsData: Recommendation[] =
-        data.allContentfulRecommendations?.nodes || [];
+        propData ?? data.allContentfulRecommendations?.nodes ?? [];
 
     // Om inga rekommendationer finns → return null
     if (!recommendationsData.length) return null;
@@ -115,7 +117,7 @@ export default function Recommendations({
                         <div className="flex flex-col items-center justify-center max-w-md gap-6">
                             {/* Avatar + namn/position */}
                             <div className="flex flex-col items-center gap-4">
-                                {recommendation.avatar?.gatsbyImageData && (
+                                {(recommendation.avatar?.gatsbyImageData || recommendation.avatar?.url) && (
                                     <a
                                         href={recommendation.reference}
                                         target="_blank"
@@ -123,14 +125,20 @@ export default function Recommendations({
                                         aria-label={`Visit ${recommendation.name}'s profile`}
                                         className="hover:opacity-70 transition"
                                     >
-                                        <GatsbyImage
-                                            image={
-                                                recommendation.avatar
-                                                    .gatsbyImageData
-                                            }
-                                            alt={recommendation.name}
-                                            className="w-16 h-16 rounded-full object-cover"
-                                        />
+                                        {recommendation.avatar?.gatsbyImageData ? (
+                                            <GatsbyImage
+                                                image={recommendation.avatar.gatsbyImageData}
+                                                alt={recommendation.name}
+                                                className="w-16 h-16 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={recommendation.avatar?.url}
+                                                alt={recommendation.name}
+                                                loading="lazy"
+                                                className="w-16 h-16 rounded-full object-cover"
+                                            />
+                                        )}
                                     </a>
                                 )}
 
@@ -174,7 +182,7 @@ export default function Recommendations({
                 >
                     <div className="mb-8 max-w-4xl mx-auto px-4 w-[80%]">
                         <div className="flex items-center gap-4">
-                            {recommendation.avatar?.gatsbyImageData && (
+                            {(recommendation.avatar?.gatsbyImageData || recommendation.avatar?.url) && (
                                 <a
                                     href={recommendation.reference}
                                     target="_blank"
@@ -182,14 +190,20 @@ export default function Recommendations({
                                     aria-label={`Visit ${recommendation.name}'s profile`}
                                     className="hover:opacity-70 transition"
                                 >
-                                    <GatsbyImage
-                                        image={
-                                            recommendation.avatar
-                                                .gatsbyImageData
-                                        }
-                                        alt={recommendation.name}
-                                        className="w-12 h-12 rounded-full object-cover"
-                                    />
+                                    {recommendation.avatar?.gatsbyImageData ? (
+                                        <GatsbyImage
+                                            image={recommendation.avatar.gatsbyImageData}
+                                            alt={recommendation.name}
+                                            className="w-12 h-12 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={recommendation.avatar?.url}
+                                            alt={recommendation.name}
+                                            loading="lazy"
+                                            className="w-12 h-12 rounded-full object-cover"
+                                        />
+                                    )}
                                 </a>
                             )}
 

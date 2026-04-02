@@ -5,7 +5,19 @@ import { documentToReactComponents } from '@contentful/rich-text-react-renderer'
 // GatsbyImage = optimerad bild, IGatsbyImageData = TypeScript-typ för bilddata
 import { GatsbyImage, IGatsbyImageData } from 'gatsby-plugin-image';
 
-export default function AboutSection() {
+/* =======================
+   AboutSection Props Type
+======================= */
+type AboutSectionProps = {
+    aboutSectionData?: {
+        title?: string;
+        thumbnail?: { gatsbyImageData?: IGatsbyImageData; url?: string };
+        description?: { raw: string };
+        ctaReference?: { page: { slug: string } }[];
+    };
+};
+
+export default function AboutSection({ aboutSectionData: propData }: AboutSectionProps = {}) {
     /**
      * useStaticQuery körs vid build-time i Gatsby
      * och hämtar data från Contentful via GraphQL
@@ -36,10 +48,10 @@ export default function AboutSection() {
     `);
 
     /**
-     * Tar första objektet i arrayen (index 0)
-     * Optional chaining (?.) skyddar om data saknas
+     * Om propData finns → använd det (SSR)
+     * Annars → fallback till useStaticQuery (build-time)
      */
-    const aboutSectionData = data.allContentfulAboutSection?.nodes?.[0];
+    const aboutSectionData = propData ?? data.allContentfulAboutSection?.nodes?.[0];
 
     // Om ingen data finns → rendera ingenting (förhindrar krasch)
     if (!aboutSectionData) return null;
@@ -54,6 +66,7 @@ export default function AboutSection() {
      */
     const imageData: IGatsbyImageData | null =
         thumbnail?.gatsbyImageData ?? null;
+    const thumbnailUrl: string | null = (thumbnail as any)?.url ?? null;
 
     return (
         <section className="about w-screen min-h-screen flex flex-col justify-center bg-[#fafafa] text-[#312B22]">
@@ -91,6 +104,14 @@ export default function AboutSection() {
                                         image={imageData}
                                         alt="painting"
                                         className="w-24 h-24 mt-4 rounded-full border-4 border-blue-500"
+                                    />
+                                ) : thumbnailUrl ? (
+                                    // SSR fallback med vanlig img-tagg
+                                    <img
+                                        src={thumbnailUrl}
+                                        alt="painting"
+                                        loading="lazy"
+                                        className="w-24 h-24 mt-4 rounded-full border-4 border-blue-500 object-cover"
                                     />
                                 ) : (
                                     // Fallback om bild saknas

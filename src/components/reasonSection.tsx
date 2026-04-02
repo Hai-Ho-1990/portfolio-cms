@@ -11,7 +11,17 @@ import SplitText from './animations/SplitText';
    - Animera huvudtexten med SplitText
 ======================= */
 
-export default function ReasonSection() {
+/* =======================
+   ReasonSection Props Type
+======================= */
+type ReasonData = {
+    title?: string;
+    reasonRef?: { body?: { body?: string }; title?: string };
+    thumbnail?: { url?: string };
+    obs?: string;
+};
+
+export default function ReasonSection({ reasonData }: { reasonData?: ReasonData } = {}) {
     /* =======================
        DATA FETCHING
        =======================
@@ -41,12 +51,11 @@ export default function ReasonSection() {
     /* =======================
        DATA SELECTION
        =======================
-       ReasonSection är unikt innehåll
-       → vi använder första objektet i nodes-arrayen
-       Fallback till tomt objekt om data saknas
+       Om reasonData prop finns → använd det (SSR)
+       Annars → fallback till useStaticQuery (build-time)
     ======================= */
     const { title, reasonRef, obs } =
-        data.allContentfulReasonSection.nodes?.[0] || {};
+        reasonData ?? data.allContentfulReasonSection.nodes?.[0] ?? {};
 
     return (
         <section className="w-screen h-screen flex flex-col justify-between bg-white text-[#312B22] items-center pt-10 pb-20">

@@ -16,7 +16,21 @@ import NavBar from './navbar';
        - Footer
    - Ger struktur och scroll-kontext för hela sidan
 ======================= */
-const Layout = ({ children }: { children: React.ReactNode }) => {
+/* =======================
+   Layout Props Type
+   =======================
+   Optional SSR data props
+   passed down to child components
+======================= */
+type LayoutProps = {
+    children: React.ReactNode;
+    navItems?: any[];
+    heroData?: any;
+    techStackData?: any[];
+    footerData?: any;
+};
+
+const Layout = ({ children, navItems, heroData, techStackData, footerData }: LayoutProps) => {
     return (
         /* =======================
            ReactLenis wrapper
@@ -32,9 +46,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                - Innehåller navigeringsbar, Hero och TechStackScroller
             ======================= */}
             <header className="relative h-screen flex flex-col justify-between overflow-hidden bg-[#efefef]">
-                <NavBar />
-                <Hero />
-                <TechStackScroller />
+                <NavBar navItems={navItems} />
+                <Hero heroData={heroData} />
+                <TechStackScroller techStackData={techStackData} />
             </header>
 
             {/* =======================
@@ -56,7 +70,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 id="footer"
                 className="footer w-screen min-h-screen bg-white text-black flex flex-col justify-center items-center pt-20 pb-20"
             >
-                <FooterComponent />
+                <FooterComponent footerData={footerData} />
             </footer>
         </ReactLenis>
     );

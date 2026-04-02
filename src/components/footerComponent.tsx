@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { graphql, useStaticQuery } from 'gatsby';
 
-export default function FooterComponent() {
+/* =======================
+   FooterComponent Props Type
+======================= */
+type FooterData = {
+    buttonCtaText1?: string;
+    buttonCtaText2?: string;
+    buttonCtaText3?: string;
+    ctaHover1?: string;
+    ctaHover2?: string;
+    extarnalLink?: { url?: string };
+    externalLink?: { url?: string };
+    mainTitle?: string;
+    sideText?: string;
+    email?: string;
+    thumbnail?: { url?: string };
+};
+
+export default function FooterComponent({ footerData }: { footerData?: FooterData } = {}) {
     /**
      * useStaticQuery hämtar footer-data från Contentful vid build-time
      */
@@ -29,9 +46,11 @@ export default function FooterComponent() {
     `);
 
     /**
-     * Destructuring av första objektet i nodes-arrayen
-     * Om data saknas → fallback till tomt objekt {}
+     * Om footerData prop finns → använd det (SSR)
+     * Annars → fallback till useStaticQuery (build-time)
      */
+    const footerNode = footerData ?? data?.allContentfulFooter?.nodes?.[0] ?? null;
+
     const {
         buttonCtaText1,
         buttonCtaText2,
@@ -39,10 +58,11 @@ export default function FooterComponent() {
         ctaHover1,
         ctaHover2,
         extarnalLink,
+        externalLink,
         mainTitle,
         sideText,
         email
-    } = data?.allContentfulFooter?.nodes?.[0] || {};
+    } = footerNode || {};
 
     /**
      * State som håller koll på om e-postadressen är kopierad
@@ -53,7 +73,7 @@ export default function FooterComponent() {
      * Säkerhetskontroll:
      * Om ingen footer-data finns → rendera inget
      */
-    if (!data?.allContentfulFooter?.nodes?.[0]) {
+    if (!footerNode) {
         console.error('Footer content not found');
         return null;
     }
@@ -144,9 +164,9 @@ export default function FooterComponent() {
                 </button>
 
                 {/* -------- EXTERNAL LINK BUTTON -------- */}
-                {extarnalLink?.url && (
+                {(externalLink?.url || extarnalLink?.url) && (
                     <a
-                        href={extarnalLink.url}
+                        href={(externalLink?.url || extarnalLink?.url)!}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="Navigate to external link"

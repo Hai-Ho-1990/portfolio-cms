@@ -16,7 +16,7 @@ import { graphql } from 'gatsby';
    - Vertikal scroll översätts till translateX
    - Varje <li> motsvarar en hel skärmbredd
 ===================================================== */
-const DesktopScrollSection: React.FC = () => {
+const DesktopScrollSection: React.FC<{ worksData?: any[] }> = ({ worksData }) => {
     const ulRef = useRef<HTMLUListElement>(null); // Referens till <ul> som flyttas horisontellt
     const sectionRef = useRef<HTMLElement>(null); // Wrapper-sektion som styr scroll-längden
     const headerRef = useRef<HTMLDivElement>(null); // Sticky header (döljs i slutet)
@@ -118,7 +118,7 @@ const DesktopScrollSection: React.FC = () => {
                 ref={ulRef}
                 className="flex sticky top-0 left-0 h-screen will-change-transform"
             >
-                <WorkList isMobile={false} />
+                <WorkList isMobile={false} worksData={worksData} />
             </ul>
         </section>
     );
@@ -130,10 +130,10 @@ const DesktopScrollSection: React.FC = () => {
    - Ingen horisontell scroll
    - WorkList renderas vertikalt
 ===================================================== */
-const MobileScrollSection: React.FC = () => {
+const MobileScrollSection: React.FC<{ worksData?: any[] }> = ({ worksData }) => {
     return (
         <section className="w-full">
-            <WorkList isMobile={true} />
+            <WorkList isMobile={true} worksData={worksData} />
         </section>
     );
 };
@@ -144,7 +144,7 @@ const MobileScrollSection: React.FC = () => {
    - Avgör layout baserat på viewport-bredd
    - Returnerar null tills client är redo
 ===================================================== */
-const LenisScrollSection: React.FC = () => {
+const LenisScrollSection: React.FC<{ worksData?: any[] }> = ({ worksData }) => {
     const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -162,7 +162,7 @@ const LenisScrollSection: React.FC = () => {
         return null;
     }
 
-    return isMobile ? <MobileScrollSection /> : <DesktopScrollSection />;
+    return isMobile ? <MobileScrollSection worksData={worksData} /> : <DesktopScrollSection worksData={worksData} />;
 };
 
 /* =====================================================
@@ -193,6 +193,13 @@ type IndexPageProps = {
     };
     serverData?: {
         seo?: SeoData;
+        navItems?: any[];
+        heroData?: any;
+        techStackData?: any[];
+        aboutSectionData?: any;
+        worksData?: any[];
+        reasonData?: any;
+        footerData?: any;
     };
 };
 
@@ -201,10 +208,15 @@ type IndexPageProps = {
 ===================================================== */
 const IndexPage = ({ data, serverData }: IndexPageProps) => {
     return (
-        <Layout>
-            <AboutSection />
-            <LenisScrollSection />
-            <ReasonSection />
+        <Layout
+            navItems={serverData?.navItems}
+            heroData={serverData?.heroData}
+            techStackData={serverData?.techStackData}
+            footerData={serverData?.footerData}
+        >
+            <AboutSection aboutSectionData={serverData?.aboutSectionData} />
+            <LenisScrollSection worksData={serverData?.worksData} />
+            <ReasonSection reasonData={serverData?.reasonData} />
         </Layout>
     );
 };
@@ -231,52 +243,36 @@ export default IndexPage;
 ===================================================== */
 export async function getServerData() {
     try {
-        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
-            await import('../utils/contentful');
+        const {
+            fetchNavItems, fetchHeroData, fetchAboutSection,
+            fetchWorks, fetchReasonSection, fetchFooter,
+        } = await import('../utils/ssrDataFetchers');
 
-        // Hämta hero-entries (content_type = "hero") med SEO-referens
-        const result = await fetchContentful({
-            content_type: 'hero',
-            include: '2',
-        });
+        const [navItems, heroResult, aboutSectionData, worksData, reasonData, footerData] =
+            await Promise.all([
+                fetchNavItems(),
+                fetchHeroData(),
+                fetchAboutSection(),
+                fetchWorks(),
+                fetchReasonSection(),
+                fetchFooter(),
+            ]);
 
-        const entry = result.items?.[0];
-        if (!entry) {
-            return { props: { seo: null } };
-        }
-
-        const assetMap = buildAssetMap(result.includes);
-        const entryMap = buildEntryMap(result.includes);
-
-        // Resolva SEO-referensen
-        const seoRef = entry.fields?.seo;
-        const seoEntry = seoRef?.sys
-            ? resolveLink(seoRef, assetMap, entryMap)
-            : null;
-
-        let seo: SeoData | null = null;
-
-        if (seoEntry) {
-            const ogImageRef = seoEntry.fields?.openGraphImage;
-            const ogAsset = ogImageRef?.sys
-                ? resolveLink(ogImageRef, assetMap, entryMap)
-                : null;
-
-            seo = {
-                seoTitle: seoEntry.fields?.seoTitle,
-                seoDescription: seoEntry.fields?.seoDescription
-                    ? { seoDescription: seoEntry.fields.seoDescription }
-                    : undefined,
-                openGraphImage: ogAsset?.fields?.file
-                    ? { file: { url: ogAsset.fields.file.url } }
-                    : undefined,
-            };
-        }
-
-        return { props: { seo } };
+        return {
+            props: {
+                seo: heroResult?.seo ?? {},
+                navItems,
+                heroData: heroResult?.heroData ?? null,
+                techStackData: heroResult?.techStackData ?? [],
+                aboutSectionData,
+                worksData,
+                reasonData,
+                footerData,
+            },
+        };
     } catch (error) {
         console.error('getServerData error (index):', error);
-        return { props: { seo: null } };
+        return { props: {} };
     }
 }
 

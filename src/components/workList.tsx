@@ -35,6 +35,25 @@ type Work = {
 };
 
 /* =====================================================
+   SSR WORK TYPE
+   =====================================================
+   Stöder plain URL-bilder från SSR
+*/
+type SSRWorkImage = {
+    gatsbyImageData?: IGatsbyImageData;
+    url?: string;
+};
+
+type SSRWork = {
+    slug: string;
+    title: string;
+    description: { raw: string };
+    techStack: TechStackItem[];
+    workImage: SSRWorkImage[];
+    projectOrder?: number;
+};
+
+/* =====================================================
    PROPS
    =====================================================
    isMobile används för att avgöra
@@ -44,6 +63,7 @@ type Work = {
 */
 type WorkListProps = {
     isMobile: boolean;
+    worksData?: SSRWork[];
 };
 
 /* =====================================================
@@ -53,7 +73,7 @@ type WorkListProps = {
    från Contentful, med olika layout
    beroende på skärmstorlek.
 */
-export default function WorkList({ isMobile }: WorkListProps) {
+export default function WorkList({ isMobile, worksData }: WorkListProps) {
     /* =================================================
        STATE
        =================================================
@@ -115,9 +135,10 @@ export default function WorkList({ isMobile }: WorkListProps) {
     /* =================================================
        EXTRAHERAR PROJEKTEN
        =================================================
-       nodes innehåller själva listan med projekt.
+       Om worksData prop finns → använd det (SSR)
+       Annars → fallback till useStaticQuery (build-time)
     */
-    const works: Work[] = data.allContentfulWorks.nodes;
+    const works: (Work | SSRWork)[] = worksData ?? data.allContentfulWorks.nodes;
 
     /* Om inga projekt finns – rendera ingenting */
     if (!works.length) return null;
@@ -189,8 +210,8 @@ export default function WorkList({ isMobile }: WorkListProps) {
                        BILDER TILL BOUNCECARDS
                        ===================================== */
                     const workImages = work.workImage.map(
-                        (img) => img.gatsbyImageData
-                    );
+                        (img: any) => img.gatsbyImageData ?? img.url
+                    ).filter(Boolean);
 
                     const isActive = activeWork === work.slug;
 
@@ -312,8 +333,8 @@ export default function WorkList({ isMobile }: WorkListProps) {
                 }
 
                 const workImages = work.workImage.map(
-                    (img) => img.gatsbyImageData
-                );
+                    (img: any) => img.gatsbyImageData ?? img.url
+                ).filter(Boolean);
 
                 return (
                     <li

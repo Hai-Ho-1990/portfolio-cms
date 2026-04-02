@@ -33,15 +33,15 @@ export default function About({ data, serverData }: any) {
         <ReactLenis root>
             {/* Sticky/header-sektionen */}
             <header className="absolute top-0 w-full">
-                <NavBar />
+                <NavBar navItems={serverData?.navItems} />
             </header>
 
             {/* Biografi-sektionen */}
-            <Biography />
+            <Biography biographyData={serverData?.biographyData} />
 
             {/* Erfarenheter och rekommendationer */}
-            <Experiences />
-            <HorizontalScrollsection />
+            <Experiences experiencesData={serverData?.experiencesData} />
+            <HorizontalScrollsection recommendationsData={serverData?.recommendationsData} />
         </ReactLenis>
     );
 }
@@ -103,52 +103,29 @@ export const query = graphql`
 */
 export async function getServerData() {
     try {
-        const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
-            await import('../utils/contentful');
+        const {
+            fetchNavItems, fetchBiography, fetchExperiences, fetchRecommendations,
+        } = await import('../utils/ssrDataFetchers');
 
-        // Hamta aboutMePage-entries med SEO-referens
-        const result = await fetchContentful({
-            content_type: 'aboutMePage',
-            include: '2',
-            limit: '1',
-        });
+        const [navItems, bioResult, experiencesData, recommendationsData] =
+            await Promise.all([
+                fetchNavItems(),
+                fetchBiography(),
+                fetchExperiences(),
+                fetchRecommendations(),
+            ]);
 
-        const entry = result.items?.[0];
-        if (!entry) {
-            return { props: { seo: null } };
-        }
-
-        const assetMap = buildAssetMap(result.includes);
-        const entryMap = buildEntryMap(result.includes);
-
-        // Resolva SEO-referensen
-        const seoRef = entry.fields?.seo;
-        const seoEntry = seoRef?.sys
-            ? resolveLink(seoRef, assetMap, entryMap)
-            : null;
-
-        let seo: AboutSeo | null = null;
-
-        if (seoEntry) {
-            const ogImageRef = seoEntry.fields?.openGraphImage;
-            const ogAsset = ogImageRef?.sys
-                ? resolveLink(ogImageRef, assetMap, entryMap)
-                : null;
-
-            seo = {
-                seoTitle: seoEntry.fields?.seoTitle,
-                seoDescription: seoEntry.fields?.seoDescription
-                    ? { seoDescription: seoEntry.fields.seoDescription }
-                    : undefined,
-                openGraphImage: ogAsset?.fields?.file
-                    ? { file: { url: ogAsset.fields.file.url } }
-                    : undefined,
-            };
-        }
-
-        return { props: { seo } };
+        return {
+            props: {
+                seo: bioResult.seo,
+                navItems,
+                biographyData: bioResult.biographyData,
+                experiencesData,
+                recommendationsData,
+            },
+        };
     } catch (error) {
         console.error('getServerData error (about):', error);
-        return { props: { seo: null } };
+        return { props: {} };
     }
 }

@@ -5,7 +5,18 @@ import AnimatedContent from '../components/animations/AnimatedContent';
 // GatsbyImage = optimerad bild, getImage = hämtar rätt bilddata från Contentful
 import { GatsbyImage, getImage } from 'gatsby-plugin-image';
 
-export default function Biography() {
+/* =======================
+   Biography Props Type
+======================= */
+type BiographyData = {
+    avatar?: { gatsbyImageData?: any; url?: string };
+    biography?: { biography?: string };
+    title?: string;
+    name?: string;
+    position?: string;
+};
+
+export default function Biography({ biographyData }: { biographyData?: BiographyData } = {}) {
     /**
      * useStaticQuery körs vid build-time i Gatsby
      * och hämtar data från Contentful via GraphQL
@@ -33,16 +44,20 @@ export default function Biography() {
     `);
 
     /**
-     * Tar första objektet i arrayen (index 0)
-     * Optional chaining (?.) skyddar om data saknas
+     * Om biographyData prop finns → använd det (SSR)
+     * Annars → fallback till useStaticQuery (build-time)
      */
-    const aboutData = data.allContentfulAboutMePage?.nodes?.[0];
+    const aboutData = biographyData ?? data.allContentfulAboutMePage?.nodes?.[0];
 
     /**
      * getImage omvandlar Contentful-bildobjektet
      * till ett format som GatsbyImage kan använda
+     * Om SSR-data: avatar kan ha url istället
      */
-    const avatarImage = getImage(aboutData?.avatar);
+    const avatarImage = aboutData?.avatar?.gatsbyImageData
+        ? getImage(aboutData.avatar)
+        : null;
+    const avatarUrl = aboutData?.avatar?.url || null;
 
     /**
      * Om ingen data finns → rendera ingenting
@@ -68,13 +83,20 @@ export default function Biography() {
                 <AnimatedContent>
                     <div className="flex gap-4 mt-10">
                         {/* Visar avatar endast om bild finns */}
-                        {avatarImage && (
+                        {avatarImage ? (
                             <GatsbyImage
                                 image={avatarImage}
                                 alt={`${name}'s profile picture`}
                                 className="w-12 h-12 rounded-full object-cover"
                             />
-                        )}
+                        ) : avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt={`${name}'s profile picture`}
+                                loading="lazy"
+                                className="w-12 h-12 rounded-full object-cover"
+                            />
+                        ) : null}
 
                         {/* Namn och position */}
                         <div className="flex flex-col items-start">

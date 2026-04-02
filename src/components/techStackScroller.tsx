@@ -22,7 +22,7 @@ type TechItem = {
    - Duplicera ikoner så att de fyller skärmen
    - Skapa en oändlig horisontell scroll-animation
 ======================= */
-export default function TechStackScroller() {
+export default function TechStackScroller({ techStackData }: { techStackData?: TechItem[] } = {}) {
     /* =======================
        GRAPHQL QUERY
        =======================
@@ -45,11 +45,11 @@ export default function TechStackScroller() {
     /* =======================
        RAW TECH STACK DATA
        =======================
-       Plockar första Hero-noden
-       Fallback till tom array
+       Om techStackData prop finns → använd det (SSR)
+       Annars → fallback till useStaticQuery (build-time)
     ======================= */
     const techStack: TechItem[] =
-        data.allContentfulHero.nodes[0]?.techStack ?? [];
+        techStackData ?? data.allContentfulHero.nodes[0]?.techStack ?? [];
 
     /* =======================
        STATE
