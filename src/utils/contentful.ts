@@ -26,8 +26,9 @@ export async function fetchContentful(params: Record<string, string>) {
     const response = await fetch(url);
 
     if (!response.ok) {
+        const errorBody = await response.text();
         throw new Error(
-            `Contentful API error: ${response.status} ${response.statusText}`
+            `Contentful API error: ${response.status} ${response.statusText} — ${errorBody}`
         );
     }
 

@@ -6,10 +6,10 @@
 
 import { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } from './contentful';
 
-// Hjälpfunktion: gör asset-URL till absolut HTTPS
+// Hjälpfunktion: returnerar URL i samma format som Contentful/Gatsby (//protocol-relative)
 function assetUrl(url?: string): string | undefined {
     if (!url) return undefined;
-    return url.startsWith('//') ? `https:${url}` : url;
+    return url;
 }
 
 // Resolva SEO-data från en entry
@@ -116,12 +116,17 @@ export async function fetchHeroData() {
             : undefined,
     };
 
-    // Tech stack
+    // Tech stack — entries of type "techStack" with an svg asset reference
     const techStackRefs = entry.fields?.techStack || [];
     const techStackData = (techStackRefs as any[]).map((ref: any) => {
-        const asset = ref?.sys ? resolveLink(ref, assetMap, entryMap) : null;
-        if (asset?.fields?.file) {
-            return { svg: { url: assetUrl(asset.fields.file.url) } };
+        const techEntry = ref?.sys ? resolveLink(ref, assetMap, entryMap) : null;
+        if (!techEntry?.fields) return null;
+
+        const svgRef = techEntry.fields.svg;
+        const svgAsset = svgRef?.sys ? resolveLink(svgRef, assetMap, entryMap) : null;
+
+        if (svgAsset?.fields?.file) {
+            return { svg: { url: assetUrl(svgAsset.fields.file.url) } };
         }
         return null;
     }).filter(Boolean);
@@ -134,7 +139,7 @@ export async function fetchHeroData() {
 // -------------------------------------------------
 export async function fetchAboutSection() {
     const result = await fetchContentful({
-        content_type: 'aboutSection',
+        content_type: 'about',
         include: '3',
         limit: '1',
     });
@@ -178,7 +183,7 @@ export async function fetchAboutSection() {
 // -------------------------------------------------
 export async function fetchWorks() {
     const result = await fetchContentful({
-        content_type: 'works',
+        content_type: 'musicalWork',
         include: '5',
     });
 
@@ -190,12 +195,12 @@ export async function fetchWorks() {
     const works = result.items.map((entry: any) => {
         const fields = entry.fields;
 
-        // Work image
-        const imgRef = fields?.workImage;
-        const imgAsset = imgRef?.sys ? resolveLink(imgRef, assetMap, entryMap) : null;
-        const workImage = imgAsset?.fields?.file
-            ? [{ url: assetUrl(imgAsset.fields.file.url) }]
-            : [];
+        // Work images (array of asset links)
+        const imgRefs = Array.isArray(fields?.workImage) ? fields.workImage : fields?.workImage ? [fields.workImage] : [];
+        const workImage = imgRefs.map((ref: any) => {
+            const asset = ref?.sys ? resolveLink(ref, assetMap, entryMap) : null;
+            return asset?.fields?.file ? { url: assetUrl(asset.fields.file.url) } : null;
+        }).filter(Boolean);
 
         // Tech stack
         const techStack = (fields?.techStack || []).map((ref: any) => {
@@ -364,7 +369,7 @@ export async function fetchWorkIntro() {
 // -------------------------------------------------
 export async function fetchBiography() {
     const result = await fetchContentful({
-        content_type: 'aboutMePage',
+        content_type: 'aboutMe',
         include: '3',
         limit: '1',
     });
@@ -478,7 +483,7 @@ export async function fetchRecommendations() {
 // -------------------------------------------------
 export async function fetchWorksSeo() {
     const result = await fetchContentful({
-        content_type: 'works',
+        content_type: 'musicalWork',
         include: '2',
         limit: '1',
     });

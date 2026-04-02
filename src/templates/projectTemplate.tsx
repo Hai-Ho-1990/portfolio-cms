@@ -369,7 +369,7 @@ export async function getServerData({ params }: { params: Record<string, string>
 
         // Hamta works-entry med matchande slug
         const result = await fetchContentful({
-            content_type: 'works',
+            content_type: 'musicalWork',
             'fields.slug': slug,
             include: '10',
             limit: '1',
@@ -401,7 +401,7 @@ export async function getServerData({ params }: { params: Record<string, string>
                     techStack.push({
                         title: fields.title,
                         svg: svgAsset?.fields?.file
-                            ? { url: `https:${svgAsset.fields.file.url}` }
+                            ? { url: svgAsset.fields.file.url }
                             : undefined,
                     });
                 } else if (contentTypeId === 'externalLink') {
@@ -413,7 +413,7 @@ export async function getServerData({ params }: { params: Record<string, string>
                         title: fields.title,
                         url: fields.url,
                         icon: iconAsset?.fields?.file
-                            ? { file: { url: `https:${iconAsset.fields.file.url}` } }
+                            ? { file: { url: iconAsset.fields.file.url } }
                             : undefined,
                     });
                 } else if (contentTypeId === 'variantMedia') {
@@ -424,7 +424,7 @@ export async function getServerData({ params }: { params: Record<string, string>
                     techStack.push({
                         title: fields.title,
                         icon: iconAsset?.fields?.file
-                            ? { url: `https:${iconAsset.fields.file.url}` }
+                            ? { url: iconAsset.fields.file.url }
                             : undefined,
                     });
                 }
@@ -459,7 +459,7 @@ export async function getServerData({ params }: { params: Record<string, string>
                             content: secEntry.fields?.content || '',
                         },
                         thumbnail: thumbAsset?.fields?.file
-                            ? { url: `https:${thumbAsset.fields.file.url}` }
+                            ? { url: thumbAsset.fields.file.url }
                             : undefined,
                     });
                 }
