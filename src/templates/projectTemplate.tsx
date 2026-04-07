@@ -360,12 +360,12 @@ export const query = graphql`
    projekt-sidor. Hamtar projektet via slug fran
    Contentful REST API och resolver alla referenser.
 ===================================================== */
-export async function getServerData({ params }: { params: Record<string, string> }) {
+export async function getServerData({ params, pageContext }: { params: Record<string, string>, pageContext: Record<string, string> }) {
     try {
         const { fetchContentful, buildAssetMap, buildEntryMap, resolveLink } =
             await import('../utils/contentful');
 
-        const slug = params.slug || params['*'];
+        const slug = pageContext.slug || params.slug || params['*'];
 
         // Hamta works-entry med matchande slug
         const result = await fetchContentful({
